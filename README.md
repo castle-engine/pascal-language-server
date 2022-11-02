@@ -76,6 +76,7 @@ exact paths will depend on your operating system):
 - `<User settings directory>/lazarus` (e.g. `/home/user/.config/lazarus`)
 - `<User home directory>/.lazarus` (e.g. `/home/user/.lazarus`)
 - `<System settings directory>/lazarus` (e.g. `/etc/lazarus`)
+- Custom directory specified in `castle-pasls.ini` as `config` in `[lazarus]` section (see below for example). This is useful in case your Lazarus config is in a special directory, as e.g. usually setup by fpcupdeluxe.
 
 In addition, you can also specify these parameters manually in one of the
 following ways:
@@ -120,6 +121,12 @@ Allowed options:
 ;; Where to write log (contains DebugLog output, allows to debug how everything in pasls behaves).
 ;; By default none.
 filename=/tmp/pasls-log.txt
+
+[lazarus]
+;; Custom directory with Lazarus config.
+;; It should contain files like environmentoptions.xml, fpcdefines.xml .
+;; See the log output to know if pasls read successfully XML files from there.
+config=/home/michalis/installed/fpclazarus/current/config_lazarus/
 
 [castle]
 ;; Castle Game Engine location.

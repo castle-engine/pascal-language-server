@@ -480,9 +480,16 @@ var
       exit;
     Result := string(Value.NodeValue);
   end;
+
+var
+  CustomLazarusConfigDir: String;
 begin
   ConfigDirs := TStringList.Create;
   try
+    CustomLazarusConfigDir := UserConfig.ReadString('lazarus', 'config', '');
+    if CustomLazarusConfigDir <> '' then
+      ConfigDirs.Add(ExcludeTrailingPathDelimiter(CustomLazarusConfigDir));
+
     ConfigDirs.Add(GetConfigDirForApp('lazarus', '', False));
     ConfigDirs.Add(GetUserDir + DirectorySeparator + '.lazarus');
     ConfigDirs.Add(GetConfigDirForApp('lazarus', '', True));  ;
