@@ -24,7 +24,7 @@ program pasls;
 
 uses
   Classes, SysUtils, iostream, streamex, udebug, ubufferedreader, jsonstream,
-  upackages, ujsonrpc, uinitialize, utextdocument, uutils;
+  upackages, ujsonrpc, uinitialize, utextdocument, uutils, UConfig;
 
 procedure SendError(
   Rpc: TRpcPeer; Id: TRpcId; Code: Integer; const Msg: string
@@ -158,6 +158,10 @@ begin
   RpcPeer        := nil;
 
   ParseOptions;
+
+  InitializeUserConfig;
+  if LogPath = '' then
+    LogPath := UserConfig.ReadString('log', 'filename', '');
 
   if LogPath <> '' then
     try

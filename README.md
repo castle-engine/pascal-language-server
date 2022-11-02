@@ -6,11 +6,16 @@ Pascal](https://www.freepascal.org/). It uses
 [CodeTools](https://wiki.lazarus.freepascal.org/Codetools) from Lazarus as
 backend.
 
+https://github.com/Isopod/pascal-language-server notes:
+
 Forked from [the original
 project](https://github.com/arjanadriaanse/pascal-language-server), but has
 since been mostly rewritten. This fork adds many new features and fixes several
 bugs.
 
+https://github.com/castle-engine/pascal-language-server notes:
+
+This a fork of a fork. We add capability to configure using `castle-pasls.ini`, in particular to define _Castle Game Engine_ path that will make `pasls` aware of CGE units and autocomplete CGE API.
 
 ## Features
 
@@ -47,7 +52,8 @@ For information on how to use the server from Neovim, see [client/nvim](client/n
 
 To use the server from `lsp-mode` in Emacs, install the separate
 [`lsp-pascal`](https://github.com/arjanadriaanse/lsp-pascal) module.
-(Disclaimer: I don't maintain this and have not tested it as I don't use Emacs)
+
+Michalis, author of CGE, is a long-time Emacs user, so this LSP server is tested with Emacs :) See https://github.com/michaliskambi/elisp/tree/master/lsp for some notes about my experience of using this with Emacs.
 
 ### Other
 Any editor that allows you to add custom LSP configurations should work.
@@ -98,6 +104,31 @@ following ways:
 
    This overrides environment variables.
 
+## Extra configuration in castle-engine/pascal-language-server
+
+The `pasls` reads configuration file `castle-pasls.ini` in user config dir to enable some additional features.
+
+Where exactly is the config file?
+
+- On Unix: `$HOME/.config/pasls/castle-pasls.ini` .
+- In general: Uncomment `WriteLn('Reading config from ', FileName);` in UConfig.pas, run `pasls` manually, see the output.
+
+Allowed options:
+
+```
+[log]
+;; Where to write log (contains DebugLog output, allows to debug how everything in pasls behaves).
+;; By default none.
+filename=/tmp/pasls-log.txt
+
+[castle]
+;; Castle Game Engine location.
+;; Set this to make pasls automatically know paths to CGE units,
+;; and thus autocomplete CGE API.
+;; Alternatively you can define CASTLE_ENGINE_PATH environment variable.
+path=/home/michalis/sources/castle-engine/castle-engine/
+```
+
 ## Roadmap
 
 ### Wishlist
@@ -110,4 +141,9 @@ following ways:
 ### Known bugs
 
 - Does not work in include (`.inc`) files
+
+    Possibly outdated "known bug" documented in https://github.com/Isopod/pascal-language-server .
+    Testing https://github.com/castle-engine/pascal-language-server : it actually supports include files nicely.
+    Remember to use `{%MainUnit castlewindow.pas}` clauses, to help Lazarus CodeTools.
+
 - Signature help does not show all overloads

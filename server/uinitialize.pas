@@ -34,7 +34,7 @@ implementation
 uses
   SysUtils, Classes, CodeToolManager, CodeToolsConfig, URIParser, LazUTF8,
   DefineTemplates, FileUtil, LazFileUtils, DOM, XMLRead, udebug, uutils,
-  upackages;
+  upackages, UConfig;
 
 
 // Resolve the dependencies of Pkg, and then the dependencies of the
@@ -531,11 +531,36 @@ begin
   end;
 end;
 
+function CastleFpcOptions(CastleEnginePath: String): String;
+var
+  CastleFpcCfg: TStringList;
+  S, UntrimmedS: String;
+begin
+  CastleEnginePath := IncludeTrailingPathDelimiter(CastleEnginePath);
+  Result := '';
+
+  CastleFpcCfg := TStringList.Create;
+  try
+    CastleFpcCfg.LoadFromFile(CastleEnginePath + 'castle-fpc.cfg');
+    for UntrimmedS in CastleFpcCfg do
+    begin
+      S := Trim(UntrimmedS);
+      if S.Startswith('-Fu', true) or
+         S.Startswith('-Fi', true) then
+      begin
+        Insert(CastleEnginePath, S, 4);
+        Result := Result + ' ' + S;
+      end;
+    end;
+  finally FreeAndNil(CastleFpcCfg) end;
+end;
+
 procedure Initialize(Rpc: TRpcPeer; Request: TRpcRequest);
 var
   Options:   TCodeToolsOptions;
   Key:       string;
   s:         string;
+  CastleEnginePath: String;
 
   RootUri:   string;
   Directory: string;
@@ -611,6 +636,18 @@ begin
     DebugLog('  FPCTARGET    = %s', [Options.TargetOS]);
     DebugLog('  FPCTARGETCPU = %s', [Options.TargetProcessor]);
 
+    DebugLog('', []);
+    DebugLog(':: Castle Game Engine', []);
+    CastleEnginePath := UserConfig.ReadString('castle', 'path', '');
+    if CastleEnginePath = '' then
+      CastleEnginePath := GetEnvironmentVariable('CASTLE_ENGINE_PATH');
+    if CastleEnginePath <> '' then
+    begin
+      Options.FPCOptions := Options.FPCOptions + ' ' +
+        CastleFpcOptions(CastleEnginePath);
+      DebugLog('  Adding custom options: ' + Options.FPCOptions);
+    end else
+      DebugLog('  CGE path not defined, not adding any options');
 
     DebugLog('', []);
     DebugLog(':: Searching global packages', []);

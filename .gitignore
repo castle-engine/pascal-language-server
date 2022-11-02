@@ -1,3 +1,5 @@
 /backup/
 /lib/
+/server/lib/
 *.lps
+*~
