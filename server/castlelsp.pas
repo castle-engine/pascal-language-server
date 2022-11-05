@@ -85,17 +85,25 @@ function CastleFpcOptions: String;
     finally FreeAndNil(CastleFpcCfg) end;
   end;
 
+const
+  { Add the same syntax options as are specified by CGE build tool in
+    castle-engine/tools/build-tool/code/toolcompile.pas .
+
+    This is necessary to allow pasls to understand Pascal units that don't include
+    castleconf.inc but still rely in CGE Pascal configuration, which means:
+    all example and applications.
+    E.g. examples/fps_game/code/gameenemy.pas uses generics and relies on ObjFpc mode. }
+  OtherOptions = ' -Mobjfpc -Sm -Sc -Sg -Si -Sh';
 var
   CastleEnginePath: String;
 begin
+  Result := OtherOptions;
+
   CastleEnginePath := UserConfig.ReadString('castle', 'path', '');
   if CastleEnginePath = '' then
     CastleEnginePath := GetEnvironmentVariable('CASTLE_ENGINE_PATH');
-
   if CastleEnginePath <> '' then
-    Result := ReadOptionsFromCfg(CastleEnginePath)
-  else
-    Result := '';
+    Result := Result + ReadOptionsFromCfg(CastleEnginePath);
 end;
 
 finalization
