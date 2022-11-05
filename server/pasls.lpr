@@ -24,7 +24,7 @@ program pasls;
 
 uses
   Classes, SysUtils, iostream, streamex, udebug, ubufferedreader, jsonstream,
-  upackages, ujsonrpc, uinitialize, utextdocument, uutils, UConfig;
+  upackages, ujsonrpc, uinitialize, utextdocument, uutils, CastleLsp;
 
 procedure SendError(
   Rpc: TRpcPeer; Id: TRpcId; Code: Integer; const Msg: string
