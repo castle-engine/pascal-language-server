@@ -161,7 +161,7 @@ begin
 
   InitializeUserConfig;
   if LogPath = '' then
-    LogPath := UserConfig.ReadString('log', 'filename', '');
+    LogPath := UserConfig.ReadString('log', 'filename', '') + '.pid' + IntToStr(GetProcessID);
 
   if LogPath <> '' then
     try
