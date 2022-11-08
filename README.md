@@ -130,10 +130,22 @@ config=/home/michalis/installed/fpclazarus/current/config_lazarus/
 
 [castle]
 ;; Castle Game Engine location.
-;; Set this to make pasls automatically know paths to CGE units,
-;; and thus autocomplete CGE API.
-;; Alternatively you can define CASTLE_ENGINE_PATH environment variable.
+;;
+;; Set this to make pasls autocomplete CGE API by:
+;; 1. knowing paths to all CGE units (derived from this CGE path),
+;; 2. using default CGE compilation settings, like -Mobjfpc and -Sh (used by CGE build tool and editor).
+;;
+;; ( Alternatively to this you can define CASTLE_ENGINE_PATH environment variable,
+;; but note that VS Code integration prevents all environment variables from reaching pasls now. )
 path=/home/michalis/sources/castle-engine/castle-engine/
+
+[extra_options]
+;; Specify as many extra FPC options as you want.
+;; Each extra option must have a consecutive number, we start from 1, and stop when
+;; an option does not exist (or is an empty string).
+option_1=-Fu/home/michalis/sources/castle-engine/castle-engine/tests/code/tester-fpcunit
+option_2=-dSOME_DEFINE
+option_3=-dSOMETHING_MORE
 ```
 
 ## Roadmap

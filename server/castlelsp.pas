@@ -30,7 +30,14 @@ var
 
 procedure InitializeUserConfig;
 
-function CastleFpcOptions: String;
+{ Concatenated (by space) additional FPC options to pass to CodeTools.
+
+  Contains:
+  - extra CGE paths (derived from the single CGE path from castle-pasls.ini file)
+  - extra CGE options (like -Mobjfpc)
+  - extra free FPC options from castle-pasls.ini file
+}
+function ExtraFpcOptions: String;
 
 implementation
 
@@ -59,9 +66,9 @@ begin
   UserConfig := TIniFile.Create(FileName);
 end;
 
-function CastleFpcOptions: String;
+function ExtraFpcOptions: String;
 
-  function ReadOptionsFromCfg(CastleEnginePath: String): String;
+  function CastleOptionsFromCfg(CastleEnginePath: String): String;
   var
     CastleFpcCfg: TStringList;
     S, UntrimmedS: String;
@@ -93,17 +100,32 @@ const
     castleconf.inc but still rely in CGE Pascal configuration, which means:
     all example and applications.
     E.g. examples/fps_game/code/gameenemy.pas uses generics and relies on ObjFpc mode. }
-  OtherOptions = ' -Mobjfpc -Sm -Sc -Sg -Si -Sh';
+  CastleOtherOptions = ' -Mobjfpc -Sm -Sc -Sg -Si -Sh';
 var
-  CastleEnginePath: String;
+  CastleEnginePath, ExtraOption: String;
+  ExtraOptionIndex: Integer;
 begin
-  Result := OtherOptions;
+  Result := '';
 
   CastleEnginePath := UserConfig.ReadString('castle', 'path', '');
   if CastleEnginePath = '' then
     CastleEnginePath := GetEnvironmentVariable('CASTLE_ENGINE_PATH');
   if CastleEnginePath <> '' then
-    Result := Result + ReadOptionsFromCfg(CastleEnginePath);
+  begin
+    Result := Result +
+      CastleOtherOptions +
+      CastleOptionsFromCfg(CastleEnginePath);
+  end;
+
+  ExtraOptionIndex := 1;
+  while true do
+  begin
+    ExtraOption := UserConfig.ReadString('extra_options', 'option_' + IntToStr(ExtraOptionIndex), '');
+    if ExtraOption = '' then
+      Break;
+    Inc(ExtraOptionIndex);
+    Result := Result + ' ' + ExtraOption;
+  end;
 end;
 
 finalization

@@ -543,7 +543,7 @@ var
   Options:   TCodeToolsOptions;
   Key:       string;
   s:         string;
-  CgeOptions: String;
+  ExtraOptions: String;
 
   RootUri:   string;
   Directory: string;
@@ -621,13 +621,9 @@ begin
 
     DebugLog('', []);
     DebugLog(':: Castle Game Engine', []);
-    CgeOptions := CastleFpcOptions;
-    if CgeOptions <> '' then
-    begin
-      Options.FPCOptions := Options.FPCOptions + ' ' + CgeOptions;
-      DebugLog('  Adding custom options: ' + CgeOptions);
-    end else
-      DebugLog('  CGE path not defined, not adding any options');
+    ExtraOptions := ExtraFpcOptions;
+    Options.FPCOptions := Options.FPCOptions + ' ' + ExtraOptions;
+    DebugLog('  Adding compiler options: ' + ExtraOptions);
 
     DebugLog('', []);
     DebugLog(':: Searching global packages', []);
