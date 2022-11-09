@@ -573,6 +573,18 @@ begin
     if Reader.Dict then
       while (Reader.Advance <> jsDictEnd) and Reader.Key(Key) do
       begin
+        { Emacs LSP client (lsp-mode Lisp package) sends
+            "processId":null
+          in the JSON request, for reasons see
+            https://github.com/emacs-lsp/lsp-mode/commit/e7c7abf23631da04218db94960435591811ed77b
+            https://github.com/emacs-lsp/lsp-mode/pull/1408
+            https://github.com/emacs-lsp/lsp-mode/issues/1240
+          We need to call Reader.Null to "skip over" this null,
+          otherwise we would have jsDictEnd after this,
+          and we would not read other parameters (like rootUri) from JSON. }
+        if Key = 'processId' then
+          Reader.Null
+        else
         if Key = 'rootUri' then
           Reader.Str(RootUri)
         else if (Key = 'initializationOptions') and Reader.Dict then
