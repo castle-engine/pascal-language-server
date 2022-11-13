@@ -122,6 +122,11 @@ Allowed options:
 ;; By default none.
 filename=/tmp/pasls-log.txt
 
+;; Whether to dump full JSON request/response contents to log (may be quite long).
+;; By default this is false (0), and JSON request/response logs are cut at 2000 characters.
+;; You change it to true (1) to have full logs, useful at debugging.
+full_json=1
+
 [lazarus]
 ;; Custom directory with Lazarus config.
 ;; It should contain files like environmentoptions.xml, fpcdefines.xml .

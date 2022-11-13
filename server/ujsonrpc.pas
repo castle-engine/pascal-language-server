@@ -100,7 +100,7 @@ const
 implementation
 
 uses 
-  udebug;
+  CastleLsp, udebug;
 
 procedure WriteRpcId(Writer: TJsonWriter; const Id: TRPcId);
 begin
@@ -205,6 +205,9 @@ var
   Version:          string;
   Method:           string;
   Id:               TRpcId;
+
+  CutLength:        Integer;
+  LogFullJson:      Boolean;
 begin
   Result := nil;
   Buffer := nil;
@@ -296,8 +299,14 @@ begin
     Result.Reader  := Reader;
     Result.FBuffer := Buffer;
     Result.Reader  := Reader;
+    
+    LogFullJson := UserConfig.ReadBool('log', 'full_json', false);
+    if LogFullJson then
+      CutLength := MaxInt
+    else
+      CutLength := 2000;
 
-    DebugLog('> Request: '#10'%s', [Copy(Result.AsString, 1, 2000)]);
+    DebugLog('> Request: '#10'%s', [Copy(Result.AsString, 1, CutLength)]);
   except
     FreeAndNil(Result);
     FreeAndNil(Reader);
@@ -312,6 +321,9 @@ const
   begin
     FOutput.WriteBuffer(S[1], Length(S) * sizeof(S[1]));
   end;
+var
+  CutLength:        Integer;
+  LogFullJson:      Boolean;
 begin
   Response.Finalize;
 
@@ -327,7 +339,13 @@ begin
   if FOutput is THandleStream then
     FileFlush(THandleStream(FOutput).Handle);
 
-  DebugLog('< Response: '#10'%s', [Copy(Response.AsString, 1, 2000)]);
+  LogFullJson := UserConfig.ReadBool('log', 'full_json', false);
+  if LogFullJson then
+    CutLength := MaxInt
+  else
+    CutLength := 2000;
+
+  DebugLog('< Response: '#10'%s', [Copy(Response.AsString, 1, CutLength)]);
 end;
 
 constructor ERpcError.Create(ACode: Integer; const Msg: string);
