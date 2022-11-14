@@ -298,7 +298,6 @@ begin
     Result.Id      := Id;
     Result.Reader  := Reader;
     Result.FBuffer := Buffer;
-    Result.Reader  := Reader;
     
     LogFullJson := UserConfig.ReadBool('log', 'full_json', false);
     if LogFullJson then
