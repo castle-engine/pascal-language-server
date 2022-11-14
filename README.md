@@ -119,6 +119,7 @@ Allowed options:
 ```
 [log]
 ;; Where to write log (contains DebugLog output, allows to debug how everything in pasls behaves).
+;; We will add suffix with process id, like '.pid123' .
 ;; By default none.
 filename=/tmp/pasls-log.txt
 
