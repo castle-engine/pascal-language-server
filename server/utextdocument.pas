@@ -27,6 +27,10 @@ interface
 uses
   jsonstream, ujsonrpc;
 
+var
+  SyntaxErrorCausesLspError: Boolean;
+  SyntaxErrorCausesShowMessage: Boolean = true;
+
 procedure TextDocument_DidOpen(Rpc: TRpcPeer; Request: TRpcRequest);
 procedure TextDocument_DidChange(Rpc: TRpcPeer; Request: TRpcRequest);
 procedure TextDocument_SignatureHelp(Rpc: TRpcPeer; Request: TRpcRequest);
@@ -313,6 +317,23 @@ begin
 end;
 
 procedure TextDocument_Completion(Rpc: TRpcPeer; Request: TRpcRequest);
+
+  function ShowErrorMessage(const ErrorMessage: String): TRpcNotification;
+  var
+    Writer:   TJsonWriter;
+  begin
+    Result := TRpcNotification.Create('window/showMessage');
+    Writer := Result.Writer;
+
+    Writer.Key('params');
+    Writer.Dict;
+      Writer.Key('type');
+      Writer.Number(1); // type = 1 means "error"
+      Writer.Key('message');
+      Writer.Str(ErrorMessage);
+    Writer.DictEnd;
+  end;
+
 var
   Req:      TCompletionRequest;
   Code:     TCodeBuffer;
@@ -355,29 +376,49 @@ begin
     except
       on E: ERpcError do
       begin
-        // Unfortunately, there isn't really a good way to report errors to the
-        // client. While there are error responses, those aren't shown to the
-        // user. There is also the call window/showMessage, but this one is not
-        // implemented by NeoVim. So we work around it by showing a fake
-        // completion item.
         FreeAndNil(Response);
-        Response := TRpcResponse.Create(Request.Id);
-        Writer := Response.Writer;
-        Writer.Dict;
-          Writer.Key('items');
-          Writer.List;
-            Writer.Dict;
-              Writer.Key('label');
-              Writer.Str(e.Message);
-              Writer.Key('insertText');
-              Writer.Str('');
-            Writer.DictEnd;
-          Writer.ListEnd;
+        
+        if SyntaxErrorCausesLspError then
+        begin
+          Response := TRpcResponse.CreateError(Request.Id, 0, E.Message);
+        end else
+        begin
+          Response := TRpcResponse.Create(Request.Id);
+          Writer := Response.Writer;
 
-          //Writer.Key('activeParameter');
-          //Writer.Key('activeSignature');
-        Writer.DictEnd;
+          Writer.Dict;
+            { Note that isIncomplete value is required.
+              See spec: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionList
+              Emacs actually throws Lisp errors when it is missing. }
+            Writer.Key('isIncomplete');
+            Writer.Bool(true);
+
+            Writer.Key('items');
+            Writer.List;
+
+              // Unfortunately, there isn't really a good way to report errors to the
+              // client. While there are error responses, those aren't shown to the
+              // user. There is also the call window/showMessage, but this one is not
+              // implemented by NeoVim. So we work around it by showing a fake
+              // completion item.
+              Writer.Dict;
+                Writer.Key('label');
+                Writer.Str(e.Message);
+                Writer.Key('insertText');
+                Writer.Str('');
+              Writer.DictEnd;
+
+            Writer.ListEnd;
+
+            //Writer.Key('activeParameter');
+            //Writer.Key('activeSignature');
+          Writer.DictEnd;
+        end;
+
         Rpc.Send(Response);
+
+        if SyntaxErrorCausesShowMessage then
+          Rpc.Send(ShowErrorMessage(E.Message));
       end;
     end;
   finally

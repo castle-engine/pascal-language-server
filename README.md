@@ -105,6 +105,26 @@ following ways:
 
    This overrides environment variables.
 
+## Extra configuration in LSP initialization options
+
+Additional keys in LSP initialization options can be used to influence the LSP server behavior. See the docs of your LSP client (text editor) to know how to pass initialization options.
+
+- `syntaxErrorCausesLspError` (boolean, behaves as `false` if not specified) : Report LSP error on syntax error when parsing Pascal file.
+
+     By default, when this is `false`, the LSP server answers with a fake completion item with the error message. While it is a hack (we use completion item label to pass the error message), it works in VS Code and NeoVim.
+
+     When this is `true`, the LSP server answers with LSP error. This is visible in Emacs.
+
+- `syntaxErrorCausesShowMessage` (boolean, behaves as `true` if not specified) : Report a "show message" to LSP client on syntax error when parsing Pascal file.
+
+     Note that this is independent from `syntaxErrorCausesLspError`. Regardless `syntaxErrorCausesLspError` (whether we respond with LSP error or fake item), we can also invoke a "show message" on LSP client.
+
+     The effect of this depends on how the LSP client respects the `window/showMessage`.
+
+     - VS Code shows it nicely.
+
+     - Emacs shows it (but poorly, it will be quickly obscured by the message about lack of completions, and you will need to go to the `*Messages*` buffer to read it).
+
 ## Extra configuration in castle-engine/pascal-language-server
 
 The `pasls` reads configuration file `castle-pasls.ini` in user config dir to enable some additional features.

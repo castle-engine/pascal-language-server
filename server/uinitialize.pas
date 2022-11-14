@@ -34,7 +34,8 @@ implementation
 uses
   SysUtils, Classes, CodeToolManager, CodeToolsConfig, URIParser, LazUTF8,
   DefineTemplates, FileUtil, LazFileUtils, DOM, XMLRead, udebug, uutils,
-  upackages, CastleLsp;
+  upackages, utextdocument,
+  CastleLsp;
 
 
 // Resolve the dependencies of Pkg, and then the dependencies of the
@@ -543,6 +544,7 @@ var
   Options:   TCodeToolsOptions;
   Key:       string;
   s:         string;
+  b:         Boolean;
   ExtraOptions: String;
 
   RootUri:   string;
@@ -595,7 +597,11 @@ begin
             else if (Key = 'FPCTARGET') and Reader.Str(s) then
               Options.TargetOS := s
             else if (Key = 'FPCTARGETCPU') and Reader.Str(s) then
-              Options.TargetProcessor := s;
+              Options.TargetProcessor := s
+            else if (Key = 'syntaxErrorCausesLspError') and Reader.Bool(b) then
+              SyntaxErrorCausesLspError := b
+            else if (Key = 'syntaxErrorCausesShowMessage') and Reader.Bool(b) then
+              SyntaxErrorCausesShowMessage := b;
           end;
       end;
 

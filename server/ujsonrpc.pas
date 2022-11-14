@@ -49,21 +49,40 @@ type
     destructor Destroy; override;
   end;
 
-  { TRpcResponse }
-
-  TRpcResponse = class
+  { Common ancestor for sending messages to client (responses or notifications). }
+  TRpcMessageToClient = class
   protected
     FBuffer: TMemoryStream;
     FFinalized: Boolean;
-    procedure InternalCreate(const Id: TRpcId);
-    procedure Finalize;
+    procedure Finalize; virtual; abstract;
   public
     Writer: TJsonWriter;
+    constructor Create;
+    function    AsString: string;
+    destructor  Destroy; override;
+  end;
+
+  { Send response to client request. }
+  TRpcResponse = class(TRpcMessageToClient)
+  protected
+    procedure InternalCreate(const Id: TRpcId);
+    procedure Finalize; override;
+  public
     constructor Create(Id: TRpcId);
     constructor CreateError(Id: TRpcId; Code: Integer; const Msg: string);
     constructor CreateRequest(const Method: string; Id: TRpcId);
-    destructor  Destroy; override;
-    function    AsString: string;
+  end;
+
+  { Send notifications, like window/showMessage.
+
+    Note that notifications, following json-rpc (ver 2), do not have "id"
+    and the other side does not reply to them (see https://www.jsonrpc.org/specification#notification ).
+    That is also why we didn't overuse TRpcResponse for notifications, they deserve special class. }
+  TRpcNotification = class(TRpcMessageToClient)
+  protected
+    procedure Finalize; override;
+  public
+    constructor Create(const Method: String);
   end;
 
   TRpcPeer = class
@@ -74,7 +93,7 @@ type
     constructor Create(Input: TStream; Output: TStream);
 
     function    Receive: TRpcRequest;
-    procedure   Send(Response: TRpcResponse);
+    procedure   Send(Response: TRpcMessageToClient);
   end;
 
   { ERpcException }
@@ -125,12 +144,33 @@ begin
   Move(PByte(FBuffer.Memory)^, Result[1], FBuffer.Size);
 end;
 
+{ TRpcMessageToClient }
+
+constructor TRpcMessageToClient.Create;
+begin
+  inherited;
+  FBuffer := TMemoryStream.Create;
+  Writer := TJsonWriter.Create(FBuffer);
+end;
+
+function TRpcMessageToClient.AsString: string;
+begin
+  SetLength(Result, FBuffer.Size);
+  Move(PByte(FBuffer.Memory)^, Result[1], FBuffer.Size);
+end;
+
+destructor TRpcMessageToClient.Destroy;
+begin
+  FreeAndNil(Writer);
+  FreeAndNil(FBuffer);
+  inherited;
+end;
+
 { TRpcResponse }
 
 procedure TRpcResponse.InternalCreate(const Id: TRpcId);
 begin
-  FBuffer := TMemoryStream.Create;
-  Writer := TJsonWriter.Create(FBuffer);
+  inherited Create;
   Writer.Dict;
     Writer.Key('jsonrpc');
     Writer.Str('2.0');
@@ -167,24 +207,30 @@ begin
   Writer.Str(Method);
 end;
 
-
 procedure TRpcResponse.Finalize;
 begin
   if not FFinalized then
-    Writer.DictEnd;
+    Writer.DictEnd; // finish the outer-most dictionary started in TRpcResponse.InternalCreate
   FFinalized := true;
 end;
 
-function TRpcResponse.AsString: string;
+{ TRpcNotification }
+
+constructor TRpcNotification.Create(const Method: String);
 begin
-  SetLength(Result, FBuffer.Size);
-  Move(PByte(FBuffer.Memory)^, Result[1], FBuffer.Size);
+  inherited Create;
+  Writer.Dict;
+    Writer.Key('jsonrpc');
+    Writer.Str('2.0');
+    Writer.Key('method');
+    Writer.Str(Method);
 end;
 
-destructor TRpcResponse.Destroy;
+procedure TRpcNotification.Finalize;
 begin
-  FreeAndNil(Writer);
-  FreeAndNil(FBuffer);
+  if not FFinalized then
+    Writer.DictEnd; // finish the outer-most dictionary started in TRpcNotification.Create
+  FFinalized := true;
 end;
 
 { TRpcPeer }
@@ -313,7 +359,7 @@ begin
   end;
 end;
 
-procedure TRpcPeer.Send(Response: TRpcResponse);
+procedure TRpcPeer.Send(Response: TRpcMessageToClient);
 const
   ContentType: string = 'application/vscode-jsonrpc; charset=utf-8';
   procedure WriteString(const S: string);
