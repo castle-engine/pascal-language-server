@@ -161,7 +161,13 @@ begin
 
   InitializeUserConfig;
   if LogPath = '' then
-    LogPath := UserConfig.ReadString('log', 'filename', '') + '.pid' + IntToStr(GetProcessID);
+  begin
+    LogPath := UserConfig.ReadString('log', 'filename', '');
+    { If log specifies a filename, add suffix to make it unique per process,
+      so that each pasls process doesn't try to open and write to the same file. }
+    if LogPath <> '' then
+      LogPath := LogPath + '.pid' + IntToStr(GetProcessID);
+  end;
 
   if LogPath <> '' then
     try
