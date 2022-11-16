@@ -540,11 +540,21 @@ begin
 end;
 
 procedure Initialize(Rpc: TRpcPeer; Request: TRpcRequest);
+
+  function SyntaxErrorReportingModeFromInt(const I: Integer): TSyntaxErrorReportingMode;
+  begin
+    if (I < Ord(Low(TSyntaxErrorReportingMode))) or
+       (I > Ord(High(TSyntaxErrorReportingMode))) then
+      raise Exception.CreateFmt('Invalid syntaxErrorReportingMode: %d, ignoring', [I]);
+
+    Result := TSyntaxErrorReportingMode(I)
+  end;
+
 var
   Options:   TCodeToolsOptions;
   Key:       string;
   s:         string;
-  b:         Boolean;
+  i:         Integer;
   ExtraOptions: String;
 
   RootUri:   string;
@@ -598,10 +608,8 @@ begin
               Options.TargetOS := s
             else if (Key = 'FPCTARGETCPU') and Reader.Str(s) then
               Options.TargetProcessor := s
-            else if (Key = 'syntaxErrorCausesLspError') and Reader.Bool(b) then
-              SyntaxErrorCausesLspError := b
-            else if (Key = 'syntaxErrorCausesShowMessage') and Reader.Bool(b) then
-              SyntaxErrorCausesShowMessage := b;
+            else if (Key = 'syntaxErrorReportingMode') and Reader.Number(i) then
+              SyntaxErrorReportingMode := SyntaxErrorReportingModeFromInt(i);
           end;
       end;
 

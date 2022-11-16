@@ -49,12 +49,15 @@ type
     destructor Destroy; override;
   end;
 
-  { Common ancestor for sending messages to client (responses or notifications). }
-  TRpcMessageToClient = class
+  { Send message to LSP client (response to a previous request or notification). }
+  TRpcResponse = class
+  private
+    procedure InternalCreate;
+    procedure InternalCreateId(const Id: TRpcId);
   protected
     FBuffer: TMemoryStream;
     FFinalized: Boolean;
-    procedure Finalize; virtual; abstract;
+    procedure Finalize;
   public
     Writer: TJsonWriter;
     constructor Create;
@@ -71,18 +74,12 @@ type
     constructor Create(Id: TRpcId);
     constructor CreateError(Id: TRpcId; Code: Integer; const Msg: string);
     constructor CreateRequest(const Method: string; Id: TRpcId);
-  end;
-
-  { Send notifications, like window/showMessage.
-
-    Note that notifications, following json-rpc (ver 2), do not have "id"
-    and the other side does not reply to them (see https://www.jsonrpc.org/specification#notification ).
-    That is also why we didn't overuse TRpcResponse for notifications, they deserve special class. }
-  TRpcNotification = class(TRpcMessageToClient)
-  protected
-    procedure Finalize; override;
-  public
-    constructor Create(const Method: String);
+    { Create JSON-RPC notification.
+      Note that notifications, following json-rpc (ver 2), do not have "id"
+      and the other side does not reply to them (see https://www.jsonrpc.org/specification#notification ). }
+    constructor CreateNotification(const Method: string);
+    function    AsString: string;
+    destructor  Destroy; override;
   end;
 
   TRpcPeer = class
@@ -168,9 +165,16 @@ end;
 
 { TRpcResponse }
 
-procedure TRpcResponse.InternalCreate(const Id: TRpcId);
+procedure TRpcResponse.InternalCreate;
 begin
   inherited Create;
+  FBuffer := TMemoryStream.Create;
+  Writer := TJsonWriter.Create(FBuffer);
+end;
+
+procedure TRpcResponse.InternalCreateId(const Id: TRpcId);
+begin
+  InternalCreate;
   Writer.Dict;
     Writer.Key('jsonrpc');
     Writer.Str('2.0');
@@ -180,7 +184,7 @@ end;
 
 constructor TRpcResponse.Create(Id: TRpcId);
 begin
-  InternalCreate(Id);
+  InternalCreateId(Id);
   Writer.Key('result');
 end;
 
@@ -188,7 +192,7 @@ constructor TRpcResponse.CreateError(
   Id: TRpcId; Code: Integer; const Msg: string
 );
 begin
-  InternalCreate(Id);
+  InternalCreateId(Id);
 
   Writer.Key('error');
   Writer.Dict;
@@ -202,9 +206,26 @@ end;
 
 constructor TRpcResponse.CreateRequest(const Method: string; Id: TRpcId);
 begin
-  InternalCreate(Id);
+  InternalCreateId(Id);
   Writer.Key('method');
   Writer.Str(Method);
+end;
+
+constructor TRpcResponse.CreateNotification(const Method: string);
+begin
+  InternalCreate;
+  Writer.Dict;
+    Writer.Key('jsonrpc');
+    Writer.Str('2.0');
+    Writer.Key('method');
+    Writer.Str(Method);
+end;
+
+destructor TRpcResponse.Destroy;
+begin
+  FreeAndNil(Writer);
+  FreeAndNil(FBuffer);
+  inherited;
 end;
 
 procedure TRpcResponse.Finalize;
@@ -224,13 +245,6 @@ begin
     Writer.Str('2.0');
     Writer.Key('method');
     Writer.Str(Method);
-end;
-
-procedure TRpcNotification.Finalize;
-begin
-  if not FFinalized then
-    Writer.DictEnd; // finish the outer-most dictionary started in TRpcNotification.Create
-  FFinalized := true;
 end;
 
 { TRpcPeer }
