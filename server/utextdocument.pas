@@ -29,13 +29,13 @@ uses
 
 type
   TSyntaxErrorReportingMode = (
-    sermFakeCompletionItem = 0,
-    sermShowMessage = 1,
+    sermShowMessage = 0,
+    sermFakeCompletionItem = 1,
     sermErrorResponse = 2
   );
 
 var
-  SyntaxErrorReportingMode: TSyntaxErrorReportingMode = sermFakeCompletionItem;
+  SyntaxErrorReportingMode: TSyntaxErrorReportingMode = sermShowMessage;
 
 procedure TextDocument_DidOpen(Rpc: TRpcPeer; Request: TRpcRequest);
 procedure TextDocument_DidChange(Rpc: TRpcPeer; Request: TRpcRequest);

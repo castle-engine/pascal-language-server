@@ -111,9 +111,15 @@ Additional keys in LSP initialization options can be used to influence the LSP s
 
 - `syntaxErrorReportingMode` (integer): Determines how to report syntax errors. Syntax errors indicate that CodeTools cannot understand the surrounding Pascal code well enough to provide any code completion.
 
-    - 0 (default): Return a fake completion item with the error message. This works well in VC Code and NeoVim -- while the completion item doesn't really complete anything, but the error message is clearly visible.
+    - 0 (default): Show an error message. This relies on the LSP client (text editor) handling the `window/showMessage` message. Support in various text editor:
 
-    - 1: Show an error message. This relies on the LSP client (text editor) handling the `window/showMessage` message. This works well in VS Code, and somewhat works in Emacs (Emacs `lsp-mode` handles and shows the message, though it will usually be quickly hidden by the next message _"No completion item"_ and you'll have to look at it in the `*Messages*` buffer).
+        - VS Code: works.
+
+        - NeoVim (0.8.0): works, the message is shown for ~1 sec by default.
+
+        - Emacs: works, the message is visible in [echo area](https://www.emacswiki.org/emacs/EchoArea) and the `*Messages*` buffer. You can filter out useless `No completion found` messages to make it perfect, see https://github.com/michaliskambi/elisp/blob/master/lsp/kambi-pascal-lsp.el for example.
+
+    - 1: Return a fake completion item with the error message. This works well in VC Code and NeoVim -- while the completion item doesn't really complete anything, but the error message is clearly visible.
 
     - 2: Return an error to the LSP client. Some LSP clients will just hide the error, but some (like Emacs) will show it clearly and prominently.
 
