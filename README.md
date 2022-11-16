@@ -52,8 +52,13 @@ For information on how to use the server from Neovim, see [client/nvim](client/n
 
 To use the server from `lsp-mode` in Emacs, install the separate
 [`lsp-pascal`](https://github.com/arjanadriaanse/lsp-pascal) module.
+Full example setup of it is documented in [Michalis notes about LSP + Pascal](https://github.com/michaliskambi/elisp/tree/master/lsp).
 
-Michalis, author of CGE, is a long-time Emacs user, so this LSP server is tested with Emacs :) See https://github.com/michaliskambi/elisp/tree/master/lsp for some notes about my experience of using this with Emacs.
+### VS Code
+
+Install the VS Code extension from https://github.com/genericptr/pasls-vscode .
+
+Note that the extension settings expose some additional LSP options not understood by this LSP server. But the basic ones (FPC, Lazarus configs and the executable of LSP server) work completely fine with this LSP server.
 
 ### Other
 Any editor that allows you to add custom LSP configurations should work.
