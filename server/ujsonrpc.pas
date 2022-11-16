@@ -195,17 +195,17 @@ begin
   inherited;
 end;
 
-function TRpcResponse.AsString: string;
-begin
-  SetLength(Result, FBuffer.Size);
-  Move(PByte(FBuffer.Memory)^, Result[1], FBuffer.Size);
-end;
-
 procedure TRpcResponse.Finalize;
 begin
   if not FFinalized then
     Writer.DictEnd;
   FFinalized := true;
+end;
+
+function TRpcResponse.AsString: string;
+begin
+  SetLength(Result, FBuffer.Size);
+  Move(PByte(FBuffer.Memory)^, Result[1], FBuffer.Size);
 end;
 
 { TRpcPeer }
