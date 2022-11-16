@@ -462,9 +462,6 @@ begin
             Response := TRpcResponse.CreateError(Request.Id, 0, E.Message);
         end;
         Rpc.Send(Response);
-
-        if SyntaxErrorCausesShowMessage then
-          Rpc.Send(ShowErrorMessage(E.Message));
       end;
     end;
   finally
