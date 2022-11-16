@@ -51,11 +51,12 @@ type
 
   { Send message to LSP client (response to a previous request or notification). }
   TRpcResponse = class
+  private
+    procedure InternalCreate;
+    procedure InternalCreateId(const Id: TRpcId);
   protected
     FBuffer: TMemoryStream;
     FFinalized: Boolean;
-    procedure InternalCreate;
-    procedure InternalCreateId(const Id: TRpcId);
     procedure Finalize;
   public
     Writer: TJsonWriter;
@@ -187,12 +188,6 @@ begin
     Writer.Str(Method);
 end;
 
-function TRpcResponse.AsString: string;
-begin
-  SetLength(Result, FBuffer.Size);
-  Move(PByte(FBuffer.Memory)^, Result[1], FBuffer.Size);
-end;
-
 destructor TRpcResponse.Destroy;
 begin
   FreeAndNil(Writer);
@@ -200,10 +195,16 @@ begin
   inherited;
 end;
 
+function TRpcResponse.AsString: string;
+begin
+  SetLength(Result, FBuffer.Size);
+  Move(PByte(FBuffer.Memory)^, Result[1], FBuffer.Size);
+end;
+
 procedure TRpcResponse.Finalize;
 begin
   if not FFinalized then
-    Writer.DictEnd; // finish the outer-most dictionary started in TRpcResponse.InternalCreate
+    Writer.DictEnd;
   FFinalized := true;
 end;
 
