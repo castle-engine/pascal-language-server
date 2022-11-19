@@ -154,7 +154,7 @@ Where exactly is the config file?
 
 - On Unix: `$HOME/.config/pasls/castle-pasls.ini`
 - On Windows: `C:/Users/<username>/AppData/Local/pasls/castle-pasls.ini`
-- In general: Uncomment `WriteLn('Reading config from ', FileName);` in UConfig.pas, run `pasls` manually, see the output.
+- In general: Uncomment `WriteLn('Reading config from ', FileName);` in `server/castlelsp.pas`, run `pasls` manually, see the output.
 
 Allowed options:
 
