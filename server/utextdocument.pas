@@ -85,17 +85,35 @@ begin
   Result := HaveUri and HaveContent;
 end;
 
+{ Convert URI (with file:// protocol) to a filename.
+  Accepts also empty string, returning empty string in return.
+  Other / invalid URIs result in an exception. }
+function URIToFileNameEasy(const UriStr: String): String;
+begin
+  if UriStr = '' then
+    Exit('');
+  if not URIToFilename(UriStr, Result) then
+    raise ERpcError.CreateFmt(
+      jsrpcInvalidRequest,
+      'Unable to convert URI to filename: %s', [UriStr]
+    );
+end;
+
 procedure TextDocument_DidOpen(Rpc: TRpcPeer; Request: TRpcRequest);
 var
   Code:    TCodeBuffer;
   UriStr:  string;
-  Uri:     TURI;
-  Content: string;
+  Content, FileName: string;
 begin
   if ParseChangeOrOpen(Request.Reader, UriStr, Content, false) then
   begin
-    Uri         := ParseURI(UriStr);
-    Code        := CodeToolBoss.LoadFile(URI.Path + URI.Document, false, false);
+    FileName := URIToFileNameEasy(UriStr);
+    Code     := CodeToolBoss.LoadFile(FileName, false, false);
+    if Code = nil then
+      raise ERpcError.CreateFmt(
+        jsrpcInvalidRequest,
+        'Unable to load file: %s', [FileName]
+      );
     Code.Source := Content;
   end;
 end;
@@ -104,13 +122,17 @@ procedure TextDocument_DidChange(Rpc: TRpcPeer; Request: TRpcRequest);
 var
   Code:    TCodeBuffer;
   UriStr:  string;
-  Uri:     TURI;
-  Content: string;
+  Content, FileName: string;
 begin
   if ParseChangeOrOpen(Request.Reader, UriStr, Content, true) then
   begin
-    Uri         := ParseURI(UriStr);
-    Code        := CodeToolBoss.FindFile(URI.Path + URI.Document);
+    FileName := URIToFileNameEasy(UriStr);
+    Code     := CodeToolBoss.FindFile(FileName);
+    if Code = nil then
+      raise ERpcError.CreateFmt(
+        jsrpcInvalidRequest,
+        'Unable to load file: %s', [FileName]
+      );
     Code.Source := Content;
   end;
 end;
@@ -241,7 +263,7 @@ end;
 type
   TCompletionRequest = record
     X, Y:        Integer;
-    Uri:         TURI;
+    FileName:    String;
     TriggerKind: Integer;
     TriggerChar: string;
     IsRetrigger: Boolean;
@@ -288,7 +310,7 @@ begin
         end;
     end;
 
-  Result.Uri := ParseUri(UriStr);
+  Result.FileName := URIToFileNameEasy(UriStr);
 end;
 
 // Identifier completion
@@ -417,12 +439,12 @@ begin
   try
     try
       Req  := ParseCompletionRequest(Request.Reader);
-      Code := CodeToolBoss.FindFile(Req.Uri.Path + Req.Uri.Document);
+      Code := CodeToolBoss.FindFile(Req.FileName);
 
       if Code = nil then
         raise ERpcError.CreateFmt(
           jsrpcInvalidRequest,
-          'File not found: %s', [Req.Uri.Path + Req.Uri.Document]
+          'File not found: %s', [Req.FileName]
         );
 
       Prefix   := GetPrefix(Code, Req.X, Req.Y);
@@ -542,12 +564,12 @@ begin
   try
     try
       Req  := ParseCompletionRequest(Request.Reader);
-      Code := CodeToolBoss.FindFile(Req.Uri.Path + Req.Uri.Document);
+      Code := CodeToolBoss.FindFile(Req.FileName);
 
       if Code = nil then
         raise ERpcError.CreateFmt(
           jsrpcInvalidRequest,
-          'File not found: %s', [Req.Uri.Path + Req.Uri.Document]
+          'File not found: %s', [Req.FileName]
         );
 
       ProcName := GetProcName(Code, Req.X, Req.Y);
@@ -644,12 +666,12 @@ begin
   try
     Req := ParseCompletionRequest(Request.Reader);
 
-    Code := CodeToolBoss.FindFile(Req.Uri.Path + Req.Uri.Document);
+    Code := CodeToolBoss.FindFile(Req.FileName);
 
     if Code = nil then
       raise ERpcError.CreateFmt(
         jsrpcInvalidRequest,
-        'File not found: %s', [Req.Uri.Path + Req.Uri.Document]
+        'File not found: %s', [Req.FileName]
       );
 
     if not CodeToolBoss.InitCurCodeTool(Code) then
