@@ -739,7 +739,7 @@ begin
     begin
       Writer.Dict;
         Writer.Key('uri');
-        Writer.Str('file://' + CurPos.Code.Filename);
+        Writer.Str(FileNameToURI(CurPos.Code.Filename));
 
         Writer.Key('range');
         Writer.Dict;

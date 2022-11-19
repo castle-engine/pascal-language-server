@@ -327,7 +327,7 @@ begin
       CutLength := 2000;
 
     DebugLog('> Request: ' + LineEnding + '%s', [
-      // Use TrimRight as the Response may contain some newline in undefine convention (Unix or Windows)
+      // Use TrimRight as the Response may contain some newline in undefined convention (Unix or Windows)
       TrimRight(Copy(Result.AsString, 1, CutLength))
     ]);
   except
@@ -369,7 +369,7 @@ begin
     CutLength := 2000;
 
   DebugLog('< Response: ' + LineEnding + '%s', [
-    // Use TrimRight as the Response may contain some newline in undefine convention (Unix or Windows)
+    // Use TrimRight as the Response may contain some newline in undefined convention (Unix or Windows)
     TrimRight(Copy(Response.AsString, 1, CutLength))
   ]);
 end;
