@@ -13,9 +13,26 @@ project](https://github.com/arjanadriaanse/pascal-language-server), but has
 since been mostly rewritten. This fork adds many new features and fixes several
 bugs.
 
-https://github.com/castle-engine/pascal-language-server notes:
+## Castle Game Engine fork features
 
-This a fork of a fork. We add capability to configure using `castle-pasls.ini`, in particular to define _Castle Game Engine_ path that will make `pasls` aware of CGE units and autocomplete CGE API.
+Features of [Castle Game Engine fork](https://github.com/castle-engine/pascal-language-server):
+
+- We are a fork of [Philip Zander LSP Pascal server](https://github.com/Isopod/pascal-language-server/)
+
+- We contribute back improvements that are not CGE-specific (see e.g. https://github.com/Isopod/pascal-language-server/pull/1 , https://github.com/Isopod/pascal-language-server/pull/2 , https://github.com/Isopod/pascal-language-server/pull/4 ).
+
+- We add capability to configure the LSP server using `castle-pasls.ini` to:
+    - Define _Castle Game Engine_ path that will make `pasls` aware of CGE units and autocomplete CGE API.
+    - Add extra FPC options.
+    - Provide custom Lazarus config location (useful if you install Lazarus by [fpcupdeluxe](https://castle-engine.io/fpcupdeluxe) but still want `pasls` to read Lazarus config -- this is optional).
+    - Improve debugging by known log filename and more complete JSON logs.
+
+- We can also auto-detect _Castle Game Engine_ path in some situations:
+    - If the LSP server binary is distributed in `bin` of _Castle Game Engine_.
+    - Or if the environment 'CASTLE_ENGINE_PATH` is defined (but note that accessing environment is not possible when this is run by [VS Code extension](https://github.com/genericptr/pasls-vscode)).
+    - Or if you're on Unix and using `/usr/src/castle-engine/` or `/usr/local/src/castle-engine/`.
+
+- We also pass _Castle Game Engine_ options that are also passed by [CGE build tool](https://castle-engine.io/build_tool) like `-Mobjfpc -Sm -Sc -Sg -Si -Sh`.
 
 ## Features
 
@@ -24,6 +41,7 @@ This a fork of a fork. We add capability to configure using `castle-pasls.ini`, 
 - Go to declaration
 - Go to definition
 - Automatic dependency resolution for `.lpk` and `.lpr` files
+- Detection of _Castle Game Engine_ unit paths in a various ways
 
 ## Building
 
