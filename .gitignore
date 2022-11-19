@@ -2,4 +2,7 @@
 /lib/
 /server/lib/
 *.lps
+*.dbg
 *~
+/server/pasls
+/server/pasls.exe
