@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  This file allows to build LSP server using CGE build tool,
+  https://castle-engine.io/build_tool ,
+  like "castle-engine compile" on the command-line.
+
+  Note that LSP server uses LCL CodeTools package,
+  as such it must be compiled by lazbuild (build_using_lazbuild="true")
+  and most of the compilation parameters are actually delegated to
+  the pasls.lpi file.
+  CGE build tool mostly just calls lazbuild.
+-->
+
+<project name="pasls"
+  build_using_lazbuild="true"
+  lazarus_project="server/pasls.lpi"
+  author="Philip Zander, Michalis Kamburelis"
+>
+  <version value="1.0" code="1" />
+  <data exists="false" />
+</project>
