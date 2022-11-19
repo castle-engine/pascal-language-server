@@ -50,7 +50,7 @@ procedure DebugLog(const Fmt: string; Args: array of const);
 var
   s: string;
 begin
-  s := Format(Fmt, Args) + #10;
+  s := Format(Fmt, Args) + LineEnding;
   DebugLog(s);
 end;
 
