@@ -543,6 +543,33 @@ var
 
     ProcStart := CodeContexts.StartPos;
 
+    (*
+      Testcase:
+      - edit castle-engine/src/transform/castletransform_physics.inc
+      - in TCastleCollider.CustomSerialization...
+      - write ReadWriteBoolean and then type opening parenthesis "("
+
+      Without the safeguard below, we have an occasional crash after LSP request
+      {"jsonrpc":"2.0","method":"textDocument/signatureHelp","params":{"textDocument":{"uri":"file:///home/michalis/sources/castle-engine/castle-engine/src/transform/castletransform_physics.inc"},"position":{"line":1597,"character":21}},"id":2}
+
+      The request looks OK (file uri, line and column numbers are OK).
+      Debugging, the Code.Source value is also OK, contains the correct file text.
+      But the ProcStart has weirdly large value, way beyond the file size.
+
+      With the fix below, it only results in warning:
+        Warning: GetProcName impossible, ProcStart (586344) beyond Length(Code.Source) (122268)
+      Otherwise LSP server could crash with range check error when doing
+      Code.Source[ProcStart] later.
+    *)
+    if ProcStart > Length(Code.Source) then
+    begin
+      DebugLog('Warning: GetProcName impossible, ProcStart (%d) beyond Length(Code.Source) (%d)', [
+        ProcStart,
+        Length(Code.Source)
+      ]);
+      Exit('');
+    end;
+
     // Find closest opening parenthesis
     while (ProcStart > 1) and (Code.Source[ProcStart] <> '(') do
       Dec(ProcStart);
