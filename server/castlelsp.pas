@@ -41,9 +41,13 @@ function ExtraFpcOptions: String;
 
 implementation
 
+{$ifdef UNIX} {$define UNIX_WITH_USERS_UNIT} {$endif}
+{ FPC 3.2.2 on Darwin doesn't contain Users. }
+{$ifdef DARWIN} {$undef UNIX_WITH_USERS_UNIT} {$endif}
+
 uses
   {$ifdef MSWINDOWS} Windows, {$endif}
-  {$ifdef UNIX} BaseUnix, {UnixUtils, - cannot be found, masked by UnixUtil?} Users, {$endif}
+  {$ifdef UNIX_WITH_USERS_UNIT} BaseUnix, {UnixUtils, - cannot be found, masked by UnixUtil?} Users, {$endif}
   SysUtils, Classes,
   UDebug;
 
@@ -51,7 +55,7 @@ procedure InitializeUserConfig;
 var
   FileName: String;
 begin
-  {$ifdef UNIX}
+  {$ifdef UNIX_WITH_USERS_UNIT}
   { Special hack for Unix + VSCode integration in https://github.com/genericptr/pasls-vscode ,
     looks like it overrides the environment and runs LSP server without $HOME defined,
     so GetAppConfigDir will not work (it will return relative path ".config/....". instead
