@@ -41,6 +41,7 @@ Features of [Castle Game Engine fork](https://github.com/castle-engine/pascal-la
 - Go to declaration
 - Go to definition
 - Automatic dependency resolution for `.lpk` and `.lpr` files
+- Works with include files, as long as they specify `{%MainUnit xxx.pas}` at the top (just like for Lazarus CodeTools)
 - Detection of _Castle Game Engine_ unit paths in a various ways
 
 ## Building
@@ -206,11 +207,5 @@ option_3=-dSOMETHING_MORE
 - Code formatting?
 
 ### Known bugs
-
-- Does not work in include (`.inc`) files
-
-    Possibly outdated "known bug" documented in https://github.com/Isopod/pascal-language-server .
-    Testing https://github.com/castle-engine/pascal-language-server : it actually supports include files nicely.
-    Remember to use `{%MainUnit castlewindow.pas}` clauses, to help Lazarus CodeTools.
 
 - Signature help does not show all overloads
