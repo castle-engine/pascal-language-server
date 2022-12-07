@@ -48,7 +48,7 @@ implementation
 
 uses
   Classes, SysUtils, URIParser, CodeToolManager, CodeCache, IdentCompletionTool,
-  BasicCodeTools, PascalParserTool, CodeTree, FindDeclarationTool,
+  BasicCodeTools, PascalParserTool, CodeTree, FindDeclarationTool, LinkScanner,
   CustomCodeTool, udebug;
 
 function ParseChangeOrOpen(
@@ -344,6 +344,33 @@ begin
   Result := Copy(Line, PStart, PEnd - PStart);
 end;
 
+{ Send a notification using LSP "window/showMessage".
+  Internally it will create and destroy a necessary TRpcResponse instance.
+  Remember that sending "window/showMessage" is *not* a response to LSP request for completions,
+  so you still need to send something else as completion response. }
+procedure ShowErrorMessage(const Rpc: TRpcPeer; const ErrorMessage: String);
+var
+  Writer: TJsonWriter;
+  MessageNotification: TRpcResponse;
+begin
+  MessageNotification := TRpcResponse.CreateNotification('window/showMessage');
+  try
+    Writer := MessageNotification.Writer;
+
+    Writer.Key('params');
+    Writer.Dict;
+      Writer.Key('type');
+      Writer.Number(1); // type = 1 means "error"
+      Writer.Key('message');
+      Writer.Str(ErrorMessage);
+    Writer.DictEnd;
+
+    Rpc.Send(MessageNotification);
+  finally
+    FreeAndNil(MessageNotification);
+  end;
+end;
+
 procedure TextDocument_Completion(Rpc: TRpcPeer; Request: TRpcRequest);
 
   { Create TRpcResponse with fake completion item, just to show ErrorMessage to user. }
@@ -401,33 +428,6 @@ procedure TextDocument_Completion(Rpc: TRpcPeer; Request: TRpcRequest);
     Writer.DictEnd;
   end;
 
-  { Send a notification using LSP "window/showMessage".
-    Internally it will create and destroy a necessary TRpcResponse instance.
-    Remember that sending "window/showMessage" is *not* a response to LSP request for completions,
-    so you still need to send something else as completion response. }
-  procedure ShowErrorMessage(const ErrorMessage: String);
-  var
-    Writer: TJsonWriter;
-    MessageNotification: TRpcResponse;
-  begin
-    MessageNotification := TRpcResponse.CreateNotification('window/showMessage');
-    try
-      Writer := MessageNotification.Writer;
-
-      Writer.Key('params');
-      Writer.Dict;
-        Writer.Key('type');
-        Writer.Number(1); // type = 1 means "error"
-        Writer.Key('message');
-        Writer.Str(ErrorMessage);
-      Writer.DictEnd;
-
-      Rpc.Send(MessageNotification);
-    finally
-      FreeAndNil(MessageNotification);
-    end;
-  end;
-
 var
   Req:      TCompletionRequest;
   Code:     TCodeBuffer;
@@ -478,7 +478,7 @@ begin
           sermShowMessage:
             begin
               Response := CreateResponseNoCompletions;
-              ShowErrorMessage(E.Message);
+              ShowErrorMessage(Rpc, E.Message);
             end;
           sermErrorResponse:
             Response := TRpcResponse.CreateError(Request.Id, 0, E.Message);
@@ -756,7 +756,13 @@ begin
         Success := true;
       end;
     except
-      on E: ECodeToolError do ; // Swallow
+      on E: ECodeToolError do
+        ShowErrorMessage(Rpc, E.Message);
+      { ELinkScannerError is raised from FindDeclaration e.g. when include file is missing.
+        Without capturing it here, trying to jump to declarations when there's an error
+        would crash pasls server. }
+      on E: ELinkScannerError do
+        ShowErrorMessage(Rpc, E.Message);
     end;
 
     Response := TRpcResponse.Create(Request.Id);  
