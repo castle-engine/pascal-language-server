@@ -34,6 +34,8 @@ Features of [Castle Game Engine fork](https://github.com/castle-engine/pascal-la
 
 - We also pass _Castle Game Engine_ options that are also passed by [CGE build tool](https://castle-engine.io/build_tool) like `-Mobjfpc -Sm -Sc -Sg -Si -Sh`.
 
+- We autodetect OS and CPU harder, and we fix OS=`windows` to proper `win64` or `win32` (common mistake, esp. because of https://github.com/genericptr/pasls-vscode/issues/1 ).
+
 ## Features
 
 - Code completion

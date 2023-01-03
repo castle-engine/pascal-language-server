@@ -1,5 +1,5 @@
 {
-  Copyright 2022-2022 Michalis Kamburelis
+  Copyright 2022-2023 Michalis Kamburelis
 
   Extensions to the Pascal Language Server specific to Castle Game Engine.
   See https://github.com/michaliskambi/elisp/tree/master/lsp
@@ -16,7 +16,7 @@
 
   Distributed on permissive "modified BSD 3-clause",
   https://github.com/castle-engine/castle-engine/blob/master/doc/licenses/COPYING.BSD-3-clause.txt ,
-  so that it can be combined with other licenses without issues. }
+  so that it can be combined with any other licenses without issues. }
 
 { Extensions to the Pascal Language Server specific to Castle Game Engine. }
 unit CastleLsp;

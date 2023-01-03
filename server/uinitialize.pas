@@ -35,7 +35,7 @@ uses
   SysUtils, Classes, CodeToolManager, CodeToolsConfig, URIParser, LazUTF8,
   DefineTemplates, FileUtil, LazFileUtils, DOM, XMLRead, udebug, uutils,
   upackages, utextdocument,
-  CastleLsp;
+  CastleLsp, CastleArchitectures;
 
 
 // Resolve the dependencies of Pkg, and then the dependencies of the
@@ -612,6 +612,22 @@ begin
               SyntaxErrorReportingMode := SyntaxErrorReportingModeFromInt(i);
           end;
       end;
+
+    if Options.TargetOS = 'windows' then
+    begin
+      Options.TargetOS := {$ifdef CPUx86_64}'win64'{$else}'win32'{$endif};
+      DebugLog('Correcting OS "windows" to "%s"', [Options.TargetOS]);
+    end;
+    if Options.TargetOS = '' then
+    begin
+      Options.TargetOS := AutoDetectOS;
+      DebugLog('Autodetected OS as "%s"', [Options.TargetOS]);
+    end;
+    if Options.TargetProcessor = '' then
+    begin
+      Options.TargetProcessor := AutoDetectCPU;
+      DebugLog('Autodetected CPU as "%s"', [Options.TargetProcessor]);
+    end;
 
     // Set the root directory
     // TODO: Support "workspaces"
