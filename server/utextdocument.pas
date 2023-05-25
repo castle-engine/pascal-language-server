@@ -150,7 +150,7 @@ type
     Desc:       String;
   end;
 
-  TCompletionCallback = 
+  TCompletionCallback =
     procedure (const Rec: TCompletionRec; Writer: TJsonWriter);
 
 procedure GetCompletionRecords(
@@ -180,9 +180,9 @@ begin
 
   if not CodeToolBoss.GatherIdentifiers(Code, X, Y) then
     raise ERpcError.Create(
-      jsrpcRequestFailed, 
+      jsrpcRequestFailed,
       Format('Line %d: %s', [
-        CodeToolBoss.ErrorLine, 
+        CodeToolBoss.ErrorLine,
         CodeToolBoss.ErrorMessage
       ])
     );
@@ -209,9 +209,9 @@ begin
       begin
         ResultType :=
           Identifier.Tool.ExtractProcHead(
-            identifier.Node, 
+            identifier.Node,
             [
-              phpWithoutName, phpWithoutParamList, phpWithoutSemicolon, 
+              phpWithoutName, phpWithoutParamList, phpWithoutSemicolon,
               phpWithResultType, phpWithoutBrackets, phpWithoutGenericParams,
               phpWithoutParamTypes
             ]
@@ -252,7 +252,7 @@ begin
         AppendString(Rec.Text, ': ');
         Rec.ResultType := AppendString(Rec.Text, ResultType);
       end;
-      
+
       Rec.Desc := Identifier.Node.DescAsString;
 
       Callback(Rec, Writer);
@@ -460,7 +460,7 @@ begin
         Writer.Key('items');
         Writer.List;
           GetCompletionRecords(
-            Code, Req.X + 1, Req.Y + 1, Prefix, false, 
+            Code, Req.X + 1, Req.Y + 1, Prefix, false,
             @CompletionCallback, Writer
           );
         Writer.ListEnd;
@@ -578,7 +578,7 @@ var
     // But we actually need a position *inside* the procedure identifier.
     // Note that there may be whitespace, even newlines, between the first
     // parenthesis and the procedure.
-    while (ProcStart > 1) and 
+    while (ProcStart > 1) and
           (Code.Source[ProcStart] in ['(', ' ', #13, #10, #9]) do
       Dec(ProcStart);
 
@@ -677,8 +677,8 @@ var
 
   // JumpToMethod
   FoundMethod:       Boolean;
-  NewTopLine, 
-  BlockTopLine, 
+  NewTopLine,
+  BlockTopLine,
   BlockBottomLine:   Integer;
   RevertableJump:    Boolean;
 
@@ -712,16 +712,16 @@ begin
     CurPos.Y    := Req.Y + 1;
 
     DebugLog(
-      'Find declaration/definition: %d, %d "%s"', 
+      'Find declaration/definition: %d, %d "%s"',
       [Req.X, Req.Y, GetPrefix(Code, Req.X, Req.Y)]
     );
 
     try
       // Find declaration
-      FoundDeclaration := 
+      FoundDeclaration :=
         (Target in [jmpDeclaration, jmpDefinition]) and
         CodeToolBoss.CurCodeTool.FindDeclaration(
-          CurPos, DefaultFindSmartHintFlags+[fsfSearchSourceName], 
+          CurPos, DefaultFindSmartHintFlags+[fsfSearchSourceName],
           ExprType, NewPos, NewTopLine
 
         );
@@ -743,7 +743,7 @@ begin
       end;
 
       // Try to jump to method implementation
-      FoundMethod := 
+      FoundMethod :=
         FoundDeclaration and IsProc and (Target = jmpDefinition) and
         CodeToolBoss.JumpToMethod(
           CurPos.Code, CurPos.X, CurPos.Y, NewPos.Code, NewPos.X, NewPos.Y,
@@ -765,8 +765,35 @@ begin
         ShowErrorMessage(Rpc, E.Message);
     end;
 
-    Response := TRpcResponse.Create(Request.Id);  
+    Response := TRpcResponse.Create(Request.Id);
     Writer   := Response.Writer;
+
+    (*It is possible to get here Sucess and CurPos.Code = nil.
+
+      Testcase: ctrl + click on TFloatRectangle.Empty in comment like this:
+
+      { Image region to which we should limit the display.
+        Empty (following @link(TFloatRectangle.Empty)) means using the whole image.
+
+      Logging shows:
+
+      {"jsonrpc":"2.0","id":9,"method":"textDocument/definition","params":{"textDocument":{"uri":"file:///home/michalis/sources/castle-engine/castle-engine/src/base_rendering/castleglimages_persistentimage.inc"},"position":{"line":230,"character":46}}}
+      Find declaration/definition: 46, 230 "write"
+      TextDocument_JumpTo debug: CurPos.Code<>nil False
+      FATAL EXCEPTION: Access violation
+
+        $0000000000492077  TEXTDOCUMENT_JUMPTO,  line 780 of utextdocument.pas
+        $0000000000492320  TEXTDOCUMENT_DEFINITION,  line 825 of utextdocument.pas
+        $000000000040169A  DISPATCH,  line 64 of pasls.lpr
+        $00000000004017DA  MAIN,  line 90 of pasls.lpr
+        $00000000004022AC  main,  line 239 of pasls.lpr
+
+      TODO: debug this to the end, why Code can be nil?
+      Quickly looking at how it is used above, and NewPos and how CodeTools
+      set it -- I don't see how it can.
+    *)
+    if Success and (CurPos.Code = nil) then
+      Success := false;
 
     if Success then
     begin
