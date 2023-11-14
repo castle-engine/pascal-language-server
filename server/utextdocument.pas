@@ -108,7 +108,10 @@ begin
   if ParseChangeOrOpen(Request.Reader, UriStr, Content, false) then
   begin
     FileName := URIToFileNameEasy(UriStr);
-    Code     := CodeToolBoss.LoadFile(FileName, false, false);
+    Code := CodeToolBoss.LoadFile(FileName, false, false);
+    { When we can't found file try to create it }
+    if Code = nil then
+      Code := CodeToolBoss.CreateFile(FileName);
     if Code = nil then
       raise ERpcError.CreateFmt(
         jsrpcInvalidRequest,
