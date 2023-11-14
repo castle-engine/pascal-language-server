@@ -757,7 +757,14 @@ begin
       end;
     except
       on E: ECodeToolError do
-        ShowErrorMessage(Rpc, E.Message);
+      begin
+        // exeption raised when we search identifier in some comments words
+        // has id 20170421200105 so we then do not show message window in vscode
+        if E.Id <> 20170421200105 then
+        begin
+          ShowErrorMessage(Rpc, E.Message);
+        end;
+      end;
       { ELinkScannerError is raised from FindDeclaration e.g. when include file is missing.
         Without capturing it here, trying to jump to declarations when there's an error
         would crash pasls server. }
