@@ -109,7 +109,8 @@ begin
   begin
     FileName := URIToFileNameEasy(UriStr);
     Code := CodeToolBoss.LoadFile(FileName, false, false);
-    { When we can't found file try to create it }
+    { When we can't found file try to create it, workaround for creating
+      new source files in vscode }
     if Code = nil then
       Code := CodeToolBoss.CreateFile(FileName);
     if Code = nil then
