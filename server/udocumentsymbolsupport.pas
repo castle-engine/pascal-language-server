@@ -186,6 +186,21 @@ begin
         begin
           LogInfo(Rpc, CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
             phpWithoutParamList, phpWithoutBrackets, phpWithoutSemicolon]));
+
+          { Get the real position in source file }
+          CodeTool.CleanPosToCaret(Node.StartPos, StartCaret);
+          CodeTool.CleanPosToCaret(Node.EndPos, EndCaret);
+
+          { Inc file support: do not add procedures those demand jump to another
+            include file that makes they do not work }
+
+          //LogInfo(Rpc, 'Caret file name ' + StartCaret.Code.Filename);
+          if StartCaret.Code.Filename <> Filename then
+          begin
+            Node := Node.Next;
+            continue;
+          end;
+
           Writer.Dict;
             Writer.Key('name');
             Writer.Str(CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
@@ -194,8 +209,6 @@ begin
             Writer.Key('kind');
             Writer.Number(Integer(dskMethod));
 
-            CodeTool.CleanPosToCaret(Node.StartPos, StartCaret);
-            CodeTool.CleanPosToCaret(Node.EndPos, EndCaret);
 
             Writer.Key('range');
             Writer.Dict;
