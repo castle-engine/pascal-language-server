@@ -138,7 +138,7 @@ var
   Writer:   TJsonWriter;
 begin
   Filename := ParseDocumentSymbolRequest(Request.Reader);
-  LogMessage(Rpc, 'File name:' + Filename);
+  LogInfo(Rpc, 'File name:' + Filename);
   Code := CodeToolBoss.FindFile(Filename);
 
   if Code = nil then
@@ -178,10 +178,10 @@ begin
       Node := CodeTreeNode;
       while Node <> nil do
       begin
-        LogMessage(Rpc, 'Node: ' + Node.DescAsString);
+        LogInfo(Rpc, 'Node: ' + Node.DescAsString);
         if Node.Desc = ctnProcedure then
         begin
-          LogMessage(Rpc, CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
+          LogInfo(Rpc, CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
             phpWithoutParamList, phpWithoutBrackets, phpWithoutSemicolon]));
           Writer.Dict;
             Writer.Key('name');

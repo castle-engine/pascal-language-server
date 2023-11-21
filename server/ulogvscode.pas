@@ -20,7 +20,7 @@ type
     mltError = 1,
     mltWarning,
     mltInfo,
-    mltLog,
+    mltLog
   );
 
   function ParseSetTrace(const Request: TRpcRequest): TVSCodeTraceValue;

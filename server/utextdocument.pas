@@ -675,9 +675,6 @@ var
   Success:           Boolean;
 
 begin
-  LogTrace(Rpc, 'test1234');
-  LogMessage(Rpc, 'TEst logu');
-
   Response := nil;
   Success  := false;
   IsProc   := false;
