@@ -177,11 +177,11 @@ begin
     Writer   := Response.Writer;
 
     Writer.List;
-      { Based on lazarus TProcedureListForm.AddToGrid() }
+      { Based on lazarus TProcedureListForm.AddToGrid() and other functions }
       Node := CodeTreeNode;
       while Node <> nil do
       begin
-        LogInfo(Rpc, 'Node: ' + Node.DescAsString);
+        // LogInfo(Rpc, 'Node: ' + Node.DescAsString);
         if Node.Desc = ctnProcedure then
         begin
           LogInfo(Rpc, CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
@@ -255,7 +255,6 @@ begin
   finally
     FreeAndNil(Response);
   end;
-
 end;
 
 end.
