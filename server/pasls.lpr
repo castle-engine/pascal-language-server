@@ -26,7 +26,7 @@ uses
   Classes, SysUtils, iostream, streamex, StreamIO,
   udebug, ubufferedreader, jsonstream,
   upackages, ujsonrpc, uinitialize, utextdocument, uutils,
-  CastleLsp;
+  CastleLsp, ULogVSCode, UDocumentSymbolSupport;
 
 procedure SendError(
   Rpc: TRpcPeer; Id: TRpcId; Code: Integer; const Msg: string
@@ -62,6 +62,8 @@ begin
     TextDocument_Declaration(Rpc, Request)
   else if Request.Method = 'textDocument/definition' then
     TextDocument_Definition(Rpc, Request)
+  else if Request.Method = 'textDocument/documentSymbol' then
+    TextDocument_DocumentSymbol(Rpc, Request)
   else if Request.Method = 'exit' then
   else if Request.Method = '$/cancelRequest' then
   else if Request.Method = '$/setTrace' then
