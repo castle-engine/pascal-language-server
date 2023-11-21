@@ -64,6 +64,8 @@ begin
     TextDocument_Definition(Rpc, Request)
   else if Request.Method = 'exit' then
   else if Request.Method = '$/cancelRequest' then
+  else if Request.Method = '$/setTrace' then
+    TraceValue := ParseSetTrace(Request)
   else
     raise ERpcError.CreateFmt(
       jsrpcMethodNotFound, 'Method not found: %s', [Request.Method]

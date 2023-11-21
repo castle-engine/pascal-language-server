@@ -35,7 +35,7 @@ uses
   SysUtils, Classes, CodeToolManager, CodeToolsConfig, URIParser, LazUTF8,
   DefineTemplates, FileUtil, LazFileUtils, DOM, XMLRead, udebug, uutils,
   upackages, utextdocument,
-  CastleLsp, CastleArchitectures;
+  CastleLsp, CastleArchitectures, ULogVSCode;
 
 
 // Resolve the dependencies of Pkg, and then the dependencies of the
