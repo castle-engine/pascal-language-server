@@ -696,9 +696,9 @@ begin
         Writer.Str('Pascal Language Server');
       Writer.DictEnd;
 
-      Writer.Key('capabilities');
+      Writer.Key('capabilities');  // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#clientCapabilities
       Writer.Dict;
-        Writer.Key('textDocumentSync');
+        Writer.Key('textDocumentSync'); // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncOptions
         Writer.Dict;
           Writer.Key('openClose');
           Writer.Bool(true);
@@ -737,6 +737,9 @@ begin
 
         Writer.Key('definitionProvider');
         Writer.Bool(true);
+
+        Writer.Key('documentSymbolProvider');
+        Writer.Bool(true);
       Writer.DictEnd;
 
       //Writer.Key('workspaceFolders');
@@ -744,6 +747,7 @@ begin
     Writer.DictEnd;
 
     Rpc.Send(Response);
+    LogTrace(Rpc, 'Initliasasas ');
   finally
     FreeAndNil(Options);
     FreeAndNil(Response);
