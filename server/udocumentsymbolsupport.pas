@@ -136,6 +136,9 @@ var
 
   Response: TRpcResponse;
   Writer:   TJsonWriter;
+
+  StartCaret: TCodeXYPosition;
+  EndCaret: TCodeXYPosition;
 begin
   Filename := ParseDocumentSymbolRequest(Request.Reader);
   LogInfo(Rpc, 'File name:' + Filename);
@@ -191,21 +194,24 @@ begin
             Writer.Key('kind');
             Writer.Number(Integer(dskMethod));
 
+            CodeTool.CleanPosToCaret(Node.StartPos, StartCaret);
+            CodeTool.CleanPosToCaret(Node.EndPos, EndCaret);
+
             Writer.Key('range');
             Writer.Dict;
               Writer.Key('start');
               Writer.Dict;
                 Writer.Key('line');
-                Writer.Number(1);
+                Writer.Number(StartCaret.Y);
                 Writer.Key('character');
-                Writer.Number(1);
+                Writer.Number(StartCaret.X);
               Writer.DictEnd;
               Writer.Key('end');
               Writer.Dict;
                 Writer.Key('line');
-                Writer.Number(1);
+                Writer.Number(EndCaret.Y);
                 Writer.Key('character');
-                Writer.Number(5);
+                Writer.Number(EndCaret.X);
               Writer.DictEnd;
             Writer.DictEnd;
 
@@ -214,16 +220,16 @@ begin
               Writer.Key('start');
               Writer.Dict;
                 Writer.Key('line');
-                Writer.Number(1);
+                Writer.Number(StartCaret.Y);
                 Writer.Key('character');
-                Writer.Number(1);
+                Writer.Number(StartCaret.X);
               Writer.DictEnd;
               Writer.Key('end');
               Writer.Dict;
                 Writer.Key('line');
-                Writer.Number(1);
+                Writer.Number(StartCaret.Y);
                 Writer.Key('character');
-                Writer.Number(5);
+                Writer.Number(StartCaret.X);
               Writer.DictEnd;
             Writer.DictEnd;
 
