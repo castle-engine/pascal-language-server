@@ -25,11 +25,12 @@ interface
 
 function MergePaths(Paths: array of string): string;
 function GetConfigDirForApp(AppName, Vendor: string; Global: Boolean): string;
+function URIToFileNameEasy(const UriStr: String): String;
 
 implementation
 
 uses
-  sysutils;
+  SysUtils, URIParser, ujsonrpc;
 
 function MergePaths(Paths: array of string): string;
 var
@@ -78,6 +79,21 @@ begin
     OnGetVendorName      := OldGetVendorName;
   end;
 end;
+
+{ Convert URI (with file:// protocol) to a filename.
+  Accepts also empty string, returning empty string in return.
+  Other / invalid URIs result in an exception. }
+function URIToFileNameEasy(const UriStr: String): String;
+begin
+  if UriStr = '' then
+    Exit('');
+  if not URIToFilename(UriStr, Result) then
+    raise ERpcError.CreateFmt(
+      jsrpcInvalidRequest,
+      'Unable to convert URI to filename: %s', [UriStr]
+    );
+end;
+
 
 end.
 

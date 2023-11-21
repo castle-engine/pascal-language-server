@@ -49,7 +49,7 @@ implementation
 uses
   Classes, SysUtils, URIParser, CodeToolManager, CodeCache, IdentCompletionTool,
   BasicCodeTools, PascalParserTool, CodeTree, FindDeclarationTool, LinkScanner,
-  CustomCodeTool, udebug;
+  CustomCodeTool, udebug, ulogvscode, uutils;
 
 function ParseChangeOrOpen(
   Reader: TJsonReader; out Uri: string; out Content: string; IsChange: Boolean
@@ -83,20 +83,6 @@ begin
         end;
     end;
   Result := HaveUri and HaveContent;
-end;
-
-{ Convert URI (with file:// protocol) to a filename.
-  Accepts also empty string, returning empty string in return.
-  Other / invalid URIs result in an exception. }
-function URIToFileNameEasy(const UriStr: String): String;
-begin
-  if UriStr = '' then
-    Exit('');
-  if not URIToFilename(UriStr, Result) then
-    raise ERpcError.CreateFmt(
-      jsrpcInvalidRequest,
-      'Unable to convert URI to filename: %s', [UriStr]
-    );
 end;
 
 procedure TextDocument_DidOpen(Rpc: TRpcPeer; Request: TRpcRequest);
@@ -689,6 +675,9 @@ var
   Success:           Boolean;
 
 begin
+  LogTrace(Rpc, 'test1234');
+  LogMessage(Rpc, 'TEst logu');
+
   Response := nil;
   Success  := false;
   IsProc   := false;
