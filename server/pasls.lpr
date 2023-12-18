@@ -48,6 +48,14 @@ end;
 
 procedure Dispatch(Rpc: TRpcPeer; Request: TRpcRequest);
 begin
+  { When there was shutdown request all other request should
+   return InvalidRequest response, this is done by throwing ERpcError exception.
+   more info: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#shutdown}
+  if WasShutdown and (Request.Method <> 'exit') then
+    raise ERpcError.CreateFmt(
+      jsrpcInvalidRequest,
+      'Request after shutdown: (method: %s)', [Request.Method]);
+
   if Request.Method = 'initialize' then
     Initialize(Rpc, Request)
   else if Request.Method = 'initialized' then
