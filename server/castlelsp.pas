@@ -194,7 +194,10 @@ function ExtraFpcOptions: String;
         if S.Startswith('-Fu', true) or
            S.Startswith('-Fi', true) then
         begin
-          Insert(CastleEnginePath, S, 4);
+          { Quotes added because the path to the engine may have spaces.
+            For example default AppData path on Windows }
+          Insert('"' + CastleEnginePath, S, 4);
+          S := S + '"';
           Result := Result + ' ' + S;
         end;
       end;
