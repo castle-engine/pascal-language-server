@@ -89,7 +89,7 @@ type
 
 implementation
 
-uses ulogvscode, CodeToolManager, CodeCache, CodeTree, PascalParserTool;
+uses ulogvscode, CodeToolManager, CodeCache, CodeTree, PascalParserTool{$ifdef WINDOWS}, LazUTF8{$endif};
 
 function Position(const ALine, ACharacter: Integer): TPosition;
 begin
@@ -195,7 +195,12 @@ begin
             include file that makes they do not work }
 
           //LogInfo(Rpc, 'Caret file name ' + StartCaret.Code.Filename);
+          //LogInfo(Rpc, 'Filename ' + Filename);
+          {$ifdef WINDOWS}
+          if UTF8CompareText(StartCaret.Code.Filename, Filename) <> 0 then
+          {$else}
           if StartCaret.Code.Filename <> Filename then
+          {$endif}
           begin
             Node := Node.Next;
             continue;
