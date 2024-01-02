@@ -599,11 +599,11 @@ begin
           while (Reader.Advance <> jsDictEnd) and Reader.Key(Key) do
           begin
             if (Key = 'PP') and Reader.Str(s) then
-              Options.FPCPath := s
+              Options.FPCPath := '"' + s + '"'
             else if (Key = 'FPCDIR') and Reader.Str(s) then
-              Options.FPCSrcDir := s
+              Options.FPCSrcDir := '"' + s + '"'
             else if (Key = 'LAZARUSDIR') and Reader.Str(s) then
-              Options.LazarusSrcDir := s
+              Options.LazarusSrcDir := '"' + s + '"'
             else if (Key = 'FPCTARGET') and Reader.Str(s) then
               Options.TargetOS := s
             else if (Key = 'FPCTARGETCPU') and Reader.Str(s) then
