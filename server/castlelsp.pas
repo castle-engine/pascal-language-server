@@ -197,8 +197,7 @@ function ExtraFpcOptions: String;
           { Quotes added because the path to the engine may have spaces.
             For example default AppData path on Windows }
           Insert('"' + CastleEnginePath, S, 4);
-          S := S + '"';
-          Result := Result + ' ' + S;
+          Result := Result + ' ' + S + '"';
         end;
       end;
     finally FreeAndNil(CastleFpcCfg) end;
