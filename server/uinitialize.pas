@@ -33,8 +33,8 @@ implementation
 
 uses
   SysUtils, Classes, CodeToolManager, CodeToolsConfig, URIParser, LazUTF8,
-  DefineTemplates, FileUtil, LazFileUtils, DOM, XMLRead, udebug, uutils,
-  upackages, utextdocument,
+  DefineTemplates, FileUtil, LazFileUtils, LCLVersion, IdentCompletionTool,
+  DOM, XMLRead, udebug, uutils, upackages, utextdocument,
   CastleLsp, CastleArchitectures;
 
 
@@ -666,7 +666,18 @@ begin
     begin
       Init(Options);
       IdentifierList.SortForHistory := True;
+
+      { LCL changed in
+        https://gitlab.com/freepascal.org/lazarus/lazarus/-/commit/de3a85ac41a2f882500c2d479dff48bd7bbec7f1 ,
+        removing SortForScope (Boolean), 
+        adding instead SortMethodForCompletion (enum).
+        The SortMethodForCompletion=icsScopedAlphabetic seems to be the equivalent 
+        of the old SortForScope=True. }
+      {$if LCL_FULLVERSION >= 3000000}
+      IdentifierList.SortMethodForCompletion := icsScopedAlphabetic;
+      {$else}
       IdentifierList.SortForScope   := True;
+      {$endif}
     end;
 
     // Load packages into our internal database and resolve dependencies
