@@ -1,5 +1,5 @@
 {
-  Copyright 2022-2023 Michalis Kamburelis
+  Copyright 2022-2024 Michalis Kamburelis
 
   Extensions to the Pascal Language Server specific to Castle Game Engine.
   See https://github.com/michaliskambi/elisp/tree/master/lsp
@@ -74,6 +74,26 @@ begin
 end;
 
 function ExtraFpcOptions: String;
+
+  { Quote arguments passed to FPC in case they contain spaces.
+
+    There's no cleaner way unfortunately: parameters of CodeTools API,
+    like FPCOptions, are taken as a single string, with all parameters glued
+    by a space.
+    (it would be cleaned if CodeTools API would be changed to take TStringList.)
+
+    So we have to quote parameters that contain spaces.
+    We add " around, which seems to work with FPC 3.2.2. }
+  function QuoteFpcOption(const S: String): String;
+  begin
+    if Pos(' ', S) <> 0 then
+    begin
+      if Pos('"', S) <> 0 then
+        DebugLog('  WARNING: Parameter "%s" contains both spaces and double quotes, cannot quote it reliably for FPC', [S]);
+      Result := '"' + S + '"';
+    end else
+      Result := S;
+  end;
 
   { Check is Path a sensible CGE sources path.
     Requires Path to end with PathDelim. }
@@ -195,7 +215,7 @@ function ExtraFpcOptions: String;
            S.Startswith('-Fi', true) then
         begin
           Insert(CastleEnginePath, S, 4);
-          Result := Result + ' ' + S;
+          Result := Result + ' ' + QuoteFpcOption(S);
         end;
       end;
     finally FreeAndNil(CastleFpcCfg) end;
@@ -235,7 +255,7 @@ begin
     if ExtraOption = '' then
       Break;
     Inc(ExtraOptionIndex);
-    Result := Result + ' ' + ExtraOption;
+    Result := Result + ' ' + QuoteFpcOption(ExtraOption);
   end;
 end;
 
