@@ -361,12 +361,10 @@ var
   Packages,
   SubDirectories:    TStringList;
   i:                 integer;
-  Paths:             TPaths;
 
   DirectoryTemplate,
   IncludeTemplate,
-  UnitPathTemplate,
-  SrcTemplate:       TDefineTemplate;
+  UnitPathTemplate: TDefineTemplate;
   Pkg:               TPackage;
 
 begin
