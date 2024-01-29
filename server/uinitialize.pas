@@ -569,6 +569,8 @@ var
 
   RootUri:   string;
   Directory: string;
+  StandardUnitsPaths: string;
+  StandardUnitsPathsList: TStringList;
   Response:  TRpcResponse;
   Reader:    TJsonReader;
   Writer:    TJsonWriter;
@@ -618,10 +620,30 @@ begin
               Options.TargetOS := s
             else if (Key = 'FPCTARGETCPU') and Reader.Str(s) then
               Options.TargetProcessor := s
+            else if (Key = 'fpcStandardUnitsPaths') and Reader.Str(s) then
+              StandardUnitsPaths := s
             else if (Key = 'syntaxErrorReportingMode') and Reader.Number(i) then
               SyntaxErrorReportingMode := SyntaxErrorReportingModeFromInt(i);
           end;
       end;
+
+    DebugLog('StandardUnitsPaths: ' + StandardUnitsPaths + LineEnding);
+    if Trim(StandardUnitsPaths) <> '' then
+    begin
+      StandardUnitsPathsList := TStringList.Create;
+      StandardUnitsPathsList.Text := StandardUnitsPaths;
+      StandardUnitsPaths := '';
+      try
+        for i := 0 to StandardUnitsPathsList.Count -1 do
+        begin
+          if Trim(StandardUnitsPathsList[i]) = '' then
+             continue;
+          StandardUnitsPaths := StandardUnitsPaths + ' -Fu"' + StandardUnitsPathsList[i] + '"';
+        end;
+      finally
+        FreeAndNil(StandardUnitsPathsList);
+      end;
+    end;
 
     if Options.TargetOS = 'windows' then
     begin
@@ -662,8 +684,11 @@ begin
     DebugLog('', []);
     DebugLog(':: Castle Game Engine', []);
     ExtraOptions := ExtraFpcOptions;
-    Options.FPCOptions := Options.FPCOptions + ' ' + ExtraOptions;
-    DebugLog('  Adding compiler options: ' + ExtraOptions);
+    Options.FPCOptions := Options.FPCOptions + ' ' + ExtraOptions + ' ' + StandardUnitsPaths;
+    DebugLog('  Adding compiler extra options: ' + ExtraOptions + LineEnding);
+    if StandardUnitsPaths <> '' then
+       DebugLog('  Adding compiler standard Units Paths: ' + ExtraOptions + LineEnding);
+    DebugLog(' Options.FPCOptions : ' + Options.FPCOptions + LineEnding);
 
     DebugLog('', []);
     DebugLog(':: Searching global packages', []);
