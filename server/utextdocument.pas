@@ -49,7 +49,7 @@ implementation
 uses
   Classes, SysUtils, URIParser, CodeToolManager, CodeCache, IdentCompletionTool,
   BasicCodeTools, PascalParserTool, CodeTree, FindDeclarationTool, LinkScanner,
-  CustomCodeTool, udebug, ulogvscode, uutils;
+  CustomCodeTool, udebug, uutils;
 
 function ParseChangeOrOpen(
   Reader: TJsonReader; out Uri: string; out Content: string; IsChange: Boolean
