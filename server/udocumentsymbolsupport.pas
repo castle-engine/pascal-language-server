@@ -11,7 +11,7 @@ unit UDocumentSymbolSupport;
 interface
 
 uses
-  Classes, SysUtils, jsonstream, ujsonrpc, Generics.Collections, uutils, udebug;
+  Classes, SysUtils, jsonstream, ujsonrpc, uutils;
 
 type
   { Enumeration of symbol kinds based on
@@ -51,58 +51,11 @@ type
 
   TSymbolTags = set of TSymbolTag;
 
-  { https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#position }
-  TPosition = record
-    Line: Integer;
-    Character: Integer;
-  end;
-
-  { https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#range }
-  TRange = record
-     Starts: TPosition;
-     Ends: TPosition;
-  end;
-
-
-  TDocumentSymbol = class;
-  TDocumentSymbolList = specialize TList<TDocumentSymbol>;
-
-  { Class based on
-    https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#documentSymbol }
-  TDocumentSymbol = class
-  public
-    Name: String;
-    Detail: String;
-    Kind: TDocumentSymbolKind;
-    SymbolTags: TSymbolTags;
-    Deprecated: Boolean;
-    Range: TRange;
-    SelectionRange: TRange;
-    Children: TDocumentSymbolList;
-  end;
-
-
-  function Position(const ALine, ACharacter: Integer): TPosition;
-  function Range(const AStarts, AEnds: TPosition): TRange;
-
   procedure TextDocument_DocumentSymbol(Rpc: TRpcPeer; Request: TRpcRequest);
 
 implementation
 
 uses ulogvscode, CodeToolManager, CodeCache, CodeTree, PascalParserTool{$ifdef WINDOWS}, LazUTF8{$endif};
-
-function Position(const ALine, ACharacter: Integer): TPosition;
-begin
-  Result.Line := ALine;
-  Result.Character := ACharacter;
-end;
-
-function Range(const AStarts, AEnds: TPosition): TRange;
-begin
-  Result.Starts := AStarts;
-  Result.Ends := AEnds;
-end;
-
 
 function ParseDocumentSymbolRequest(Reader: TJsonReader): String;
 var
