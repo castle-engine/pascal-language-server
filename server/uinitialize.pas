@@ -485,15 +485,25 @@ var
 var
   CustomLazarusConfigDir: String;
 begin
+  { Preparing potential configuration folders and then trying to read
+    the settings from all of them one by one.
+    TODO: There can be potentional problem with order of checked path. }
+
   ConfigDirs := TStringList.Create;
   try
     CustomLazarusConfigDir := UserConfig.ReadString('lazarus', 'config', '');
     if CustomLazarusConfigDir <> '' then
       ConfigDirs.Add(ExcludeTrailingPathDelimiter(CustomLazarusConfigDir));
 
+    // add folder like C:\Users\<user>\AppData\Local\lazarus\
     ConfigDirs.Add(GetConfigDirForApp('lazarus', '', False));
+
+    // add folder like  C:\Users\<user>\\.lazarus
     ConfigDirs.Add(GetUserDir + DirectorySeparator + '.lazarus');
+
+    // add folder like C:\ProgramData\lazarus\
     ConfigDirs.Add(GetConfigDirForApp('lazarus', '', True));  ;
+
     for Dir in ConfigDirs do
     begin
       Doc := nil;
