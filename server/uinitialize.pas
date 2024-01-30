@@ -558,6 +558,59 @@ procedure Initialize(Rpc: TRpcPeer; Request: TRpcRequest);
     Result := TSyntaxErrorReportingMode(I)
   end;
 
+  function ParseStandardUnitsPaths(const StandardUnitsPaths: String): String;
+  var
+    I: Integer;
+    StandardUnitsPathsList: TStringList;
+  begin
+    DebugLog('StandardUnitsPaths from VSCode: ' + StandardUnitsPaths + LineEnding);
+
+    Result := '';
+    if Trim(StandardUnitsPaths) = '' then
+       Exit;
+
+    StandardUnitsPathsList := TStringList.Create;
+    try
+      StandardUnitsPathsList.Text := StandardUnitsPaths;
+      for i := 0 to StandardUnitsPathsList.Count -1 do
+      begin
+        if Trim(StandardUnitsPathsList[i]) = '' then
+           continue;
+        Result := Result + ' -Fu"' + StandardUnitsPathsList[i] + '"';
+      end;
+    finally
+      FreeAndNil(StandardUnitsPathsList);
+    end;
+  end;
+
+  function ParseProjectSearchPaths(
+    const ProjectSearchPaths, ProjectDirectory: String): String;
+  var
+    I: Integer;
+    ProjectSearchPathsList: TStringList;
+  begin
+    DebugLog('ProjectSearchPaths from VSCode: ' + ProjectSearchPaths + LineEnding);
+
+    Result := '';
+    if Trim(ProjectSearchPaths) = '' then
+       Exit;
+
+    ProjectSearchPathsList := TStringList.Create;
+    try
+      ProjectSearchPathsList.Text := ProjectSearchPaths;
+      for i := 0 to ProjectSearchPathsList.Count -1 do
+      begin
+        if Trim(ProjectSearchPathsList[i]) = '' then
+           continue;
+        Result := Result + ' -Fu"' +
+               IncludeTrailingPathDelimiter(ProjectDirectory) +
+               ProjectSearchPathsList[i] + '"';
+      end;
+    finally
+      FreeAndNil(ProjectSearchPathsList);
+    end;
+  end;
+
 var
   Options:   TCodeToolsOptions;
   Key:       string;
@@ -568,7 +621,7 @@ var
   RootUri:   string;
   Directory: string;
   StandardUnitsPaths: string;
-  StandardUnitsPathsList: TStringList;
+  ProjectSearchPaths: string;
   Response:  TRpcResponse;
   Reader:    TJsonReader;
   Writer:    TJsonWriter;
@@ -620,28 +673,12 @@ begin
               Options.TargetProcessor := s
             else if (Key = 'fpcStandardUnitsPaths') and Reader.Str(s) then
               StandardUnitsPaths := s
+            else if (Key = 'projectSearchPaths') and Reader.Str(s) then
+              ProjectSearchPaths := s
             else if (Key = 'syntaxErrorReportingMode') and Reader.Number(i) then
               SyntaxErrorReportingMode := SyntaxErrorReportingModeFromInt(i);
           end;
       end;
-
-    DebugLog('StandardUnitsPaths: ' + StandardUnitsPaths + LineEnding);
-    if Trim(StandardUnitsPaths) <> '' then
-    begin
-      StandardUnitsPathsList := TStringList.Create;
-      StandardUnitsPathsList.Text := StandardUnitsPaths;
-      StandardUnitsPaths := '';
-      try
-        for i := 0 to StandardUnitsPathsList.Count -1 do
-        begin
-          if Trim(StandardUnitsPathsList[i]) = '' then
-             continue;
-          StandardUnitsPaths := StandardUnitsPaths + ' -Fu"' + StandardUnitsPathsList[i] + '"';
-        end;
-      finally
-        FreeAndNil(StandardUnitsPathsList);
-      end;
-    end;
 
     if Options.TargetOS = 'windows' then
     begin
@@ -682,10 +719,17 @@ begin
     DebugLog('', []);
     DebugLog(':: Castle Game Engine', []);
     ExtraOptions := ExtraFpcOptions;
-    Options.FPCOptions := Options.FPCOptions + ' ' + ExtraOptions + ' ' + StandardUnitsPaths;
+    StandardUnitsPaths:= ParseStandardUnitsPaths(StandardUnitsPaths);
+    ProjectSearchPaths := ParseProjectSearchPaths(ProjectSearchPaths, Directory);
+    Options.FPCOptions := Options.FPCOptions + ' ' + ExtraOptions +
+                       ' ' + StandardUnitsPaths + ' ' + ProjectSearchPaths;
     DebugLog('  Adding compiler extra options: ' + ExtraOptions + LineEnding);
     if StandardUnitsPaths <> '' then
-       DebugLog('  Adding compiler standard Units Paths: ' + ExtraOptions + LineEnding);
+      DebugLog('  Adding compiler standard Units Paths: ' + StandardUnitsPaths + LineEnding);
+
+    if ProjectSearchPaths <> '' then
+      DebugLog('  Adding project search paths: ' + ProjectSearchPaths + LineEnding);
+
     DebugLog(' Options.FPCOptions : ' + Options.FPCOptions + LineEnding);
 
     DebugLog('', []);
