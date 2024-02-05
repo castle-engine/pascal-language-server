@@ -94,6 +94,7 @@ var
 
   StartCaret: TCodeXYPosition;
   EndCaret: TCodeXYPosition;
+  ProcedureName: String;
 begin
   Filename := ParseDocumentSymbolRequest(Request.Reader);
   LogInfo(Rpc, 'File name:' + Filename);
@@ -192,10 +193,20 @@ begin
             continue;
           end;
 
+          ProcedureName := CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
+              phpWithoutParamList, phpWithoutBrackets, phpWithoutSemicolon]);
+
+          { Check procedure name is not empty, that makes vscode returns errors.
+            Can happen when we start write new procedure. }
+          if Trim(ProcedureName) = '' then
+          begin
+            Node := Node.Next;
+            continue;
+          end;
+
           Writer.Dict;
             Writer.Key('name');
-            Writer.Str(CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
-              phpWithoutParamList, phpWithoutBrackets, phpWithoutSemicolon]));
+            Writer.Str(ProcedureName);
 
             Writer.Key('kind');
             Writer.Number(Integer(dskMethod));
