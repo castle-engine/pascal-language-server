@@ -78,6 +78,8 @@ begin
   Result := URIToFileNameEasy(Uri);
 end;
 
+{ Responses for textDocument/documentSymbol method
+  Docs: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol }
 procedure TextDocument_DocumentSymbol(Rpc: TRpcPeer; Request: TRpcRequest);
 var
   Filename: String;
@@ -113,16 +115,47 @@ begin
   if CodeTool.Tree = nil then
     raise ERpcError.Create(jsrpcRequestFailed, 'Code tool tree is nil.');
 
+  { This check fails when pas file is empty, return null in response }
   if CodeTool.Tree.Root = nil then
-    raise ERpcError.Create(jsrpcRequestFailed, 'Code tree root is nil.');
+  begin
+    Response := nil;
+    try
+      Response := TRpcResponse.Create(Request.Id);
+      Writer   := Response.Writer;
+      Writer.Null;
+      Rpc.Send(Response);
+    finally
+      FreeAndNil(Response);
+    end;
+    Exit;
+  end;
 
   { Search for implementation node }
-  CodeTreeNode := CodeTool.FindImplementationNode;
+  try
+     CodeTreeNode := CodeTool.FindImplementationNode;
+  except
+    on E: Exception do
+      raise ERpcError.Create(jsrpcRequestFailed, 'FindImplementationNode exception: ' + E.Message);
+  end;
 
-  { TODO: More debug lazarus in this case does something like
-    CodeTreeNode := CodeTool.Tree.Root, does it make sense for us? }
+  { When there is no implementation section try to parse interface }
   if CodeTreeNode = nil then
-    raise ERpcError.Create(jsrpcRequestFailed, 'Can''t find implementation section.');
+    CodeTreeNode := CodeTool.FindInterfaceNode;
+
+  { This check fails there is no interface and implementation in file }
+  if CodeTreeNode = nil then
+  begin
+    Response := nil;
+    try
+      Response := TRpcResponse.Create(Request.Id);
+      Writer   := Response.Writer;
+      Writer.Null;
+      Rpc.Send(Response);
+    finally
+      FreeAndNil(Response);
+    end;
+    Exit;
+  end;
 
   Response := nil;
   try
