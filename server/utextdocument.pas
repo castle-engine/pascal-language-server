@@ -155,6 +155,8 @@ var
   node, paramsNode: TCodeTreeNode;
   SegmentLen:       Integer;
   Rec:              TCompletionRec;
+  CodeTool: TCodeTool;
+  CodeTreeNode: TCodeTreeNode;
 
   function AppendString(var S: string; Suffix: string): TStringSlice;
   begin
@@ -166,6 +168,38 @@ var
 begin
   assert(Code <> nil);
 
+  { At first we have to check the file has unit <name>, without that
+    do not try return code completion because it returns only errors. }
+  CodeToolBoss.Explore(Code, CodeTool, false, false);
+
+  if CodeTool = nil then
+    raise ERpcError.Create(jsrpcRequestFailed, 'File explore don''t return code tool.');
+
+  if CodeTool.Tree = nil then
+    raise ERpcError.Create(jsrpcRequestFailed, 'Code tool tree is nil.');
+
+  { This check fails when pas file is empty, return empty response }
+  if CodeTool.Tree.Root = nil then
+    Exit;
+
+  { Next we have to check there is interface in the code if not
+    hint only interface word, without this check code completion returns
+    only "Line ..." errors when CodeToolBoss.GatherIdentifiers() is called }
+  CodeTreeNode := CodeTool.FindInterfaceNode;
+  if CodeTreeNode = nil then
+  begin
+    Rec.Text         := 'interface';
+    Rec.Identifier.a := 0;
+    Rec.Identifier.b := 0;
+    Rec.ResultType.a := 0;
+    Rec.ResultType.b := 0;
+    Rec.Parameters   := nil;
+    Rec.Desc         := '';
+    Callback(Rec, Writer);
+    Exit;
+  end;
+
+  { Main code completion code }
   CodeToolBoss.IdentifierList.Prefix := Prefix;
 
   if not CodeToolBoss.GatherIdentifiers(Code, X, Y) then
