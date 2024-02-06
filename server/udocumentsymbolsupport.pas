@@ -171,8 +171,8 @@ begin
         // LogInfo(Rpc, 'Node: ' + Node.DescAsString);
         if Node.Desc = ctnProcedure then
         begin
-          LogInfo(Rpc, CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
-            phpWithoutParamList, phpWithoutBrackets, phpWithoutSemicolon]));
+          { LogInfo(Rpc, CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
+            phpWithoutParamList, phpWithoutBrackets, phpWithoutSemicolon])); }
 
           { Get the real position in source file }
           CodeTool.CleanPosToCaret(Node.StartPos, StartCaret);
