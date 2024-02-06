@@ -79,9 +79,9 @@ begin
   else if Request.Method = 'workspace/symbol' then
   begin
     if EngineDeveloperMode then
-       TextDocument_WorkspaceSymbol(Rpc, Request, WorkspaceAndEnginePaths)
+       WorkspaceSymbol(Rpc, Request, WorkspaceAndEnginePaths)
     else
-       TextDocument_WorkspaceSymbol(Rpc, Request, WorkspacePaths);
+       WorkspaceSymbol(Rpc, Request, WorkspacePaths);
   end
   else if Request.Method = 'exit' then
   begin

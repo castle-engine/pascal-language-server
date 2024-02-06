@@ -51,7 +51,7 @@ type
 
   TSymbolTags = set of TSymbolTag;
 
-  procedure TextDocument_WorkspaceSymbol(Rpc: TRpcPeer; Request: TRpcRequest; const Directories: TStrings);
+  procedure WorkspaceSymbol(Rpc: TRpcPeer; Request: TRpcRequest; const Directories: TStrings);
 
 implementation
 
@@ -76,7 +76,7 @@ end;
 
 { Responses for textDocument/documentSymbol method
   Docs: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#workspace_symbol }
-procedure TextDocument_WorkspaceSymbol(Rpc: TRpcPeer; Request: TRpcRequest; const Directories: TStrings);
+procedure WorkspaceSymbol(Rpc: TRpcPeer; Request: TRpcRequest; const Directories: TStrings);
 var
   FileName, Query: String;
   Code: TCodeBuffer;
@@ -91,8 +91,6 @@ var
   StartCaret: TCodeXYPosition;
   EndCaret: TCodeXYPosition;
   ProcedureName: String;
-  Count: Integer;
-//  IdentifierList: TIdentifierList;
 
   Files: TStrings;
   FilesWithPaths: TStringList;
