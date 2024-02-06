@@ -107,8 +107,8 @@ begin
       for I := 0 to Directories.Count - 1 do
       begin
         Directory := IncludeTrailingPathDelimiter(Directories[I]);
-        LogInfo(Rpc, 'Directory1:' + Directory);
-        LogInfo(Rpc, 'Directory2:' + Directories[I]);
+        //LogInfo(Rpc, 'Directory1:' + Directory);
+        //LogInfo(Rpc, 'Directory2:' + Directories[I]);
         Files.Clear;
 
         CodeToolBoss.SourceCache.DirectoryCachePool.GetListing(Directory, Files, false);
@@ -119,8 +119,8 @@ begin
           if LowerCase(ExtractFileExt(FileName)) <> '.pas' then
              continue;
           FilesWithPaths.Add(Directory + FileName);
-          LogInfo(Rpc, 'File:' + FileName);
-          LogInfo(Rpc, 'FileWithPaths:' + Directory + FileName);
+          //LogInfo(Rpc, 'File:' + FileName);
+          //LogInfo(Rpc, 'FileWithPaths:' + Directory + FileName);
         end;
       end;
     finally
@@ -173,10 +173,11 @@ begin
           // LogInfo(Rpc, 'Node: ' + Node.DescAsString);
           if Node.Desc = ctnProcedure then
           begin
-            LogInfo(Rpc, CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
-              phpWithoutParamList, phpWithoutBrackets, phpWithoutSemicolon]));
+            { LogInfo(Rpc, CodeTool.ExtractProcHead(Node, [phpAddParentProcs,
+              phpWithoutParamList, phpWithoutBrackets, phpWithoutSemicolon])); }
 
             { Get the real position in source file }
+
             CodeTool.CleanPosToCaret(Node.StartPos, StartCaret);
             CodeTool.CleanPosToCaret(Node.EndPos, EndCaret);
 
