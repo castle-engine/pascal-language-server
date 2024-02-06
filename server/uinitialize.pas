@@ -830,6 +830,9 @@ begin
 
         Writer.Key('documentSymbolProvider');
         Writer.Bool(true);
+
+        Writer.Key('workspaceSymbolProvider');
+        Writer.Bool(true);
       Writer.DictEnd;
 
       //Writer.Key('workspaceFolders');
