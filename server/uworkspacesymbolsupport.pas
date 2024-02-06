@@ -202,7 +202,7 @@ begin
               Writer.Key('location');
               Writer.Dict;
                 Writer.Key('uri');
-                Writer.Str(FilenameToURI(FileName));
+                Writer.Str(FilenameToURI(StartCaret.Code.Filename));
                 Writer.Key('range');
                 Writer.Dict;
                   Writer.Key('start');
@@ -221,42 +221,6 @@ begin
                   Writer.DictEnd;
                 Writer.DictEnd;
               Writer.DictEnd;
-              {Writer.Key('range');
-              Writer.Dict;
-                Writer.Key('start');
-                Writer.Dict;
-                  Writer.Key('line');
-                  Writer.Number(StartCaret.Y);
-                  Writer.Key('character');
-                  Writer.Number(StartCaret.X);
-                Writer.DictEnd;
-                Writer.Key('end');
-                Writer.Dict;
-                  Writer.Key('line');
-                  Writer.Number(EndCaret.Y);
-                  Writer.Key('character');
-                  Writer.Number(EndCaret.X);
-                Writer.DictEnd;
-              Writer.DictEnd;
-
-              Writer.Key('selectionRange');
-              Writer.Dict;
-                Writer.Key('start');
-                Writer.Dict;
-                  Writer.Key('line');
-                  Writer.Number(StartCaret.Y);
-                  Writer.Key('character');
-                  Writer.Number(StartCaret.X);
-                Writer.DictEnd;
-                Writer.Key('end');
-                Writer.Dict;
-                  Writer.Key('line');
-                  Writer.Number(StartCaret.Y);
-                  Writer.Key('character');
-                  Writer.Number(StartCaret.X);
-                Writer.DictEnd;
-              Writer.DictEnd;}
-
             Writer.DictEnd;
           end;
           Node := Node.Next;
