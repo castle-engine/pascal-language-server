@@ -26,7 +26,7 @@ uses
   Classes, SysUtils, iostream, streamex, StreamIO,
   udebug, ubufferedreader, jsonstream,
   upackages, ujsonrpc, uinitialize, utextdocument, uutils,
-  CastleLsp, ULogVSCode, UDocumentSymbolSupport, ushutdown;
+  CastleLsp, ULogVSCode, UDocumentSymbolSupport, ushutdown, UWorkspaceSymbolSupport;
 
 var
   ShouldExit: Boolean;
@@ -76,6 +76,13 @@ begin
     TextDocument_Definition(Rpc, Request)
   else if Request.Method = 'textDocument/documentSymbol' then
     TextDocument_DocumentSymbol(Rpc, Request)
+  else if Request.Method = 'workspace/symbol' then
+  begin
+    if EngineDeveloperMode then
+       TextDocument_WorkspaceSymbol(Rpc, Request, WorkspaceAndEnginePaths)
+    else
+       TextDocument_WorkspaceSymbol(Rpc, Request, WorkspacePaths);
+  end
   else if Request.Method = 'exit' then
   begin
     ShouldExit := true;
