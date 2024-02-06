@@ -143,45 +143,25 @@ begin
         begin
           Code := CodeToolBoss.LoadFile(FileName,false, false);
           if Code = nil then
-          begin
-            LogInfo(Rpc, 'aha0');
             Continue;
-          end;
-{          raise ERpcError.CreateFmt(
-            jsrpcInvalidRequest,
-            'File not found: %s', [Filename]
-          );}
         end;
 
         CodeToolBoss.Explore(Code, CodeTool, false, false);
 
         if CodeTool = nil then
-        begin
-          LogInfo(Rpc, 'aha1');
           raise ERpcError.Create(jsrpcRequestFailed, 'File explore don''t return code tool.');
-        end;
 
         if CodeTool.Tree = nil then
-        begin
-          LogInfo(Rpc, 'aha2');
           raise ERpcError.Create(jsrpcRequestFailed, 'Code tool tree is nil.');
-        end;
 
         { This check fails when pas file is empty, return null in response }
         if CodeTool.Tree.Root = nil then
-        begin
-          LogInfo(Rpc, 'aha3');
           Continue;
-        end;
-
 
         CodeTreeNode := CodeTool.FindInterfaceNode;
 
         if CodeTreeNode = nil then
-        begin
-          LogInfo(Rpc, 'aha4');
           Continue;
-        end;
 
         { Based on lazarus TProcedureListForm.AddToGrid() and other functions }
         Node := CodeTreeNode;

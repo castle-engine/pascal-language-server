@@ -61,7 +61,7 @@
         <PackageName Value="FCL"/>
       </Item5>
     </RequiredPackages>
-    <Units Count="11">
+    <Units Count="12">
       <Unit0>
         <Filename Value="pasls.lpr"/>
         <IsPartOfProject Value="True"/>
