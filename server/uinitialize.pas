@@ -37,7 +37,6 @@ uses
   DOM, XMLRead, udebug, uutils, upackages, utextdocument,
   CastleLsp, CastleArchitectures, ULogVSCode;
 
-
 // Resolve the dependencies of Pkg, and then the dependencies of the
 // dependencies and so on. Uses global registry and paths locally specified in
 // the package/project file (.lpk/.lpi) as a data source.
@@ -629,6 +628,8 @@ begin
   Options  := nil;
   Response := nil;
 
+  EngineDeveloperMode := false;
+
   try
     Options := TCodeToolsOptions.Create;
     Options.InitWithEnvironmentVariables;
@@ -720,6 +721,7 @@ begin
     DebugLog(':: Castle Game Engine', []);
     ExtraOptions := ExtraFpcOptions;
     StandardUnitsPaths:= ParseStandardUnitsPaths(StandardUnitsPaths);
+    ParseWorkspacePaths(ProjectSearchPaths, Directory);
     ProjectSearchPaths := ParseProjectSearchPaths(ProjectSearchPaths, Directory);
     Options.FPCOptions := Options.FPCOptions + ' ' + ExtraOptions +
                        ' ' + StandardUnitsPaths + ' ' + ProjectSearchPaths;

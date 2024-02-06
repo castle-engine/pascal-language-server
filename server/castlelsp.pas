@@ -23,10 +23,13 @@ unit CastleLsp;
 
 interface
 
-uses IniFiles;
+uses Classes, IniFiles;
 
 var
   UserConfig: TIniFile;
+  WorkspacePaths: TStringList;
+  WorkspaceAndEnginePaths: TStringList;
+  EngineDeveloperMode: Boolean;
 
 procedure InitializeUserConfig;
 
@@ -39,6 +42,8 @@ procedure InitializeUserConfig;
 }
 function ExtraFpcOptions: String;
 
+procedure ParseWorkspacePaths(const ProjectSearchPaths, ProjectDirectory: String);
+
 implementation
 
 {$ifdef UNIX} {$define UNIX_WITH_USERS_UNIT} {$endif}
@@ -48,7 +53,7 @@ implementation
 uses
   {$ifdef MSWINDOWS} Windows, {$endif}
   {$ifdef UNIX_WITH_USERS_UNIT} BaseUnix, {UnixUtils, - cannot be found, masked by UnixUtil?} Users, {$endif}
-  SysUtils, Classes,
+  SysUtils,
   UDebug;
 
 procedure InitializeUserConfig;
@@ -259,6 +264,28 @@ begin
   end;
 end;
 
+
+procedure ParseWorkspacePaths(const ProjectSearchPaths, ProjectDirectory: String);
+var
+  I: Integer;
+begin
+  if Trim(ProjectSearchPaths) = '' then
+    Exit;
+
+  WorkspacePaths.Text := ProjectSearchPaths;
+  for I := 0 to WorkspacePaths.Count -1 do
+    WorkspacePaths[I] := IncludeTrailingPathDelimiter(ProjectDirectory) + WorkspacePaths[I];
+
+  WorkspacePaths.Insert(0, ProjectDirectory);
+end;
+
+
+initialization
+  WorkspacePaths := TStringList.Create;
+  WorkspaceAndEnginePaths := TStringList.Create;
+
 finalization
+  FreeAndNil(WorkspaceAndEnginePaths);
+  FreeAndNil(WorkspacePaths);
   FreeAndNil(UserConfig);
 end.
