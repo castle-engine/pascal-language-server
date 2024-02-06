@@ -158,7 +158,10 @@ begin
         if CodeTool.Tree.Root = nil then
           Continue;
 
-        CodeTreeNode := CodeTool.FindInterfaceNode;
+        CodeTreeNode := CodeTool.FindImplementationNode;
+        { When there is no implementation section try to parse interface }
+        if CodeTreeNode = nil then
+          CodeTreeNode := CodeTool.FindInterfaceNode;
 
         if CodeTreeNode = nil then
           Continue;
