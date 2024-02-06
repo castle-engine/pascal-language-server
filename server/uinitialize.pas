@@ -615,6 +615,7 @@ var
   Key:       string;
   s:         string;
   i:         Integer;
+  b:         Boolean;
   ExtraOptions: String;
 
   RootUri:   string;
@@ -627,7 +628,6 @@ var
 begin
   Options  := nil;
   Response := nil;
-
   EngineDeveloperMode := false;
 
   try
@@ -676,6 +676,8 @@ begin
               StandardUnitsPaths := s
             else if (Key = 'projectSearchPaths') and Reader.Str(s) then
               ProjectSearchPaths := s
+            else if (Key = 'engineDevMode') and Reader.Bool(b) then
+              EngineDeveloperMode := b
             else if (Key = 'syntaxErrorReportingMode') and Reader.Number(i) then
               SyntaxErrorReportingMode := SyntaxErrorReportingModeFromInt(i);
           end;
