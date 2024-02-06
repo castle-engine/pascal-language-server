@@ -107,6 +107,11 @@
         <Filename Value="ushutdown.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit10>
+      <Unit11>
+        <Filename Value="uworkspacesymbolsupport.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UWorkspaceSymbolSupport"/>
+      </Unit11>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
