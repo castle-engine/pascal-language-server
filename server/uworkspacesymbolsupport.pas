@@ -55,7 +55,7 @@ type
 
 implementation
 
-uses ulogvscode, CodeToolManager, CodeCache, CodeTree, URIParser, PascalParserTool{$ifdef WINDOWS}, LazUTF8{$endif};
+uses ulogvscode, CodeToolManager, CodeCache, CodeTree, URIParser, PascalParserTool;
 
 function ParseDocumentSymbolRequest(Reader: TJsonReader): String;
 var

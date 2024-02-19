@@ -55,7 +55,7 @@ type
 
 implementation
 
-uses ulogvscode, CodeToolManager, CodeCache, CodeTree, PascalParserTool{$ifdef WINDOWS}, LazUTF8{$endif};
+uses ulogvscode, CodeToolManager, CodeCache, CodeTree, PascalParserTool;
 
 function ParseDocumentSymbolRequest(Reader: TJsonReader): String;
 var
@@ -183,11 +183,7 @@ begin
 
           //LogInfo(Rpc, 'Caret file name ' + StartCaret.Code.Filename);
           //LogInfo(Rpc, 'Filename ' + Filename);
-          {$ifdef WINDOWS}
-          if UTF8CompareText(StartCaret.Code.Filename, Filename) <> 0 then
-          {$else}
-          if StartCaret.Code.Filename <> Filename then
-          {$endif}
+          if not SameFileName(StartCaret.Code.Filename, Filename) then
           begin
             Node := Node.Next;
             continue;
