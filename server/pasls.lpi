@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <General>
       <Flags>
         <MainUnitHasCreateFormStatements Value="False"/>
+        <CompatibilityMode Value="True"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="pasls"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
@@ -42,7 +42,6 @@
     </PublishOptions>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0"/>
     </RunParams>
     <RequiredPackages Count="5">
       <Item1>
@@ -62,7 +61,7 @@
         <PackageName Value="FCL"/>
       </Item5>
     </RequiredPackages>
-    <Units Count="8">
+    <Units Count="12">
       <Unit0>
         <Filename Value="pasls.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -95,6 +94,24 @@
         <Filename Value="uutils.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit7>
+      <Unit8>
+        <Filename Value="ulogvscode.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="udocumentsymbolsupport.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UDocumentSymbolSupport"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="ushutdown.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="uworkspacesymbolsupport.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="UWorkspaceSymbolSupport"/>
+      </Unit11>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

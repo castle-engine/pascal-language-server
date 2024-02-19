@@ -26,7 +26,10 @@ uses
   Classes, SysUtils, iostream, streamex, StreamIO,
   udebug, ubufferedreader, jsonstream,
   upackages, ujsonrpc, uinitialize, utextdocument, uutils,
-  CastleLsp;
+  CastleLsp, ULogVSCode, UDocumentSymbolSupport, ushutdown, UWorkspaceSymbolSupport;
+
+var
+  ShouldExit: Boolean;
 
 procedure SendError(
   Rpc: TRpcPeer; Id: TRpcId; Code: Integer; const Msg: string
@@ -45,10 +48,19 @@ end;
 
 procedure Dispatch(Rpc: TRpcPeer; Request: TRpcRequest);
 begin
+  { When there was shutdown request all other request should
+   return InvalidRequest response, this is done by throwing ERpcError exception.
+   more info: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#shutdown}
+  if WasShutdown and (Request.Method <> 'exit') then
+    raise ERpcError.CreateFmt(
+      jsrpcInvalidRequest,
+      'Request after shutdown: (method: %s)', [Request.Method]);
+
   if Request.Method = 'initialize' then
     Initialize(Rpc, Request)
   else if Request.Method = 'initialized' then
   else if Request.Method = 'shutdown' then
+    Shutdown(Rpc, Request)
   else if Request.Method = 'textDocument/didOpen' then
     TextDocument_DidOpen(Rpc, Request)
   else if Request.Method = 'textDocument/didChange' then
@@ -62,8 +74,23 @@ begin
     TextDocument_Declaration(Rpc, Request)
   else if Request.Method = 'textDocument/definition' then
     TextDocument_Definition(Rpc, Request)
+  else if Request.Method = 'textDocument/documentSymbol' then
+    TextDocument_DocumentSymbol(Rpc, Request)
+  else if Request.Method = 'workspace/symbol' then
+  begin
+    if EngineDeveloperMode then
+      WorkspaceSymbol(Rpc, Request, WorkspaceAndEnginePaths)
+    else
+      WorkspaceSymbol(Rpc, Request, WorkspacePaths);
+  end
   else if Request.Method = 'exit' then
+  begin
+    ShouldExit := true;
+    DebugLog('Get exit message, exiting...');
+  end
   else if Request.Method = '$/cancelRequest' then
+  else if Request.Method = '$/setTrace' then
+    TraceValue := ParseSetTrace(Request)
   else
     raise ERpcError.CreateFmt(
       jsrpcMethodNotFound, 'Method not found: %s', [Request.Method]
@@ -84,6 +111,12 @@ begin
       begin  
         DebugLog('** End of stream, exiting **');
         exit;
+      end;
+
+      if ShouldExit then
+      begin
+        DebugLog('Main - exit');
+        Exit;
       end;
 
       try
@@ -175,6 +208,8 @@ begin
   Transcript     := nil;
   Tee            := nil;
   RpcPeer        := nil;
+  ShouldExit     := false;
+  WasShutdown    := false;
 
   ParseOptions;
 

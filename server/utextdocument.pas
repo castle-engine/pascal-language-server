@@ -49,7 +49,7 @@ implementation
 uses
   Classes, SysUtils, URIParser, CodeToolManager, CodeCache, IdentCompletionTool,
   BasicCodeTools, PascalParserTool, CodeTree, FindDeclarationTool, LinkScanner,
-  CustomCodeTool, udebug;
+  CustomCodeTool, udebug, uutils;
 
 function ParseChangeOrOpen(
   Reader: TJsonReader; out Uri: string; out Content: string; IsChange: Boolean
@@ -85,20 +85,6 @@ begin
   Result := HaveUri and HaveContent;
 end;
 
-{ Convert URI (with file:// protocol) to a filename.
-  Accepts also empty string, returning empty string in return.
-  Other / invalid URIs result in an exception. }
-function URIToFileNameEasy(const UriStr: String): String;
-begin
-  if UriStr = '' then
-    Exit('');
-  if not URIToFilename(UriStr, Result) then
-    raise ERpcError.CreateFmt(
-      jsrpcInvalidRequest,
-      'Unable to convert URI to filename: %s', [UriStr]
-    );
-end;
-
 procedure TextDocument_DidOpen(Rpc: TRpcPeer; Request: TRpcRequest);
 var
   Code:    TCodeBuffer;
@@ -108,7 +94,11 @@ begin
   if ParseChangeOrOpen(Request.Reader, UriStr, Content, false) then
   begin
     FileName := URIToFileNameEasy(UriStr);
-    Code     := CodeToolBoss.LoadFile(FileName, false, false);
+    Code := CodeToolBoss.LoadFile(FileName, false, false);
+    { When we can't found file try to create it, workaround for creating
+      new source files in vscode }
+    if Code = nil then
+      Code := CodeToolBoss.CreateFile(FileName);
     if Code = nil then
       raise ERpcError.CreateFmt(
         jsrpcInvalidRequest,
@@ -165,6 +155,8 @@ var
   node, paramsNode: TCodeTreeNode;
   SegmentLen:       Integer;
   Rec:              TCompletionRec;
+  CodeTool: TCodeTool;
+  CodeTreeNode: TCodeTreeNode;
 
   function AppendString(var S: string; Suffix: string): TStringSlice;
   begin
@@ -176,6 +168,38 @@ var
 begin
   assert(Code <> nil);
 
+  { At first we have to check the file has unit <name>, without that
+    do not try return code completion because it returns only errors. }
+  CodeToolBoss.Explore(Code, CodeTool, false, false);
+
+  if CodeTool = nil then
+    raise ERpcError.Create(jsrpcRequestFailed, 'File explore don''t return code tool.');
+
+  if CodeTool.Tree = nil then
+    raise ERpcError.Create(jsrpcRequestFailed, 'Code tool tree is nil.');
+
+  { This check fails when pas file is empty, return empty response }
+  if CodeTool.Tree.Root = nil then
+    Exit;
+
+  { Next we have to check there is interface in the code if not
+    hint only interface word, without this check code completion returns
+    only "Line ..." errors when CodeToolBoss.GatherIdentifiers() is called }
+  CodeTreeNode := CodeTool.FindInterfaceNode;
+  if CodeTreeNode = nil then
+  begin
+    Rec.Text         := 'interface';
+    Rec.Identifier.a := 0;
+    Rec.Identifier.b := 0;
+    Rec.ResultType.a := 0;
+    Rec.ResultType.b := 0;
+    Rec.Parameters   := nil;
+    Rec.Desc         := '';
+    Callback(Rec, Writer);
+    Exit;
+  end;
+
+  { Main code completion code }
   CodeToolBoss.IdentifierList.Prefix := Prefix;
 
   if not CodeToolBoss.GatherIdentifiers(Code, X, Y) then
@@ -757,7 +781,14 @@ begin
       end;
     except
       on E: ECodeToolError do
-        ShowErrorMessage(Rpc, E.Message);
+      begin
+        // exeption raised when we search identifier in some comments words
+        // has id 20170421200105 so we then do not show message window in vscode
+        if E.Id <> 20170421200105 then
+        begin
+          ShowErrorMessage(Rpc, E.Message);
+        end;
+      end;
       { ELinkScannerError is raised from FindDeclaration e.g. when include file is missing.
         Without capturing it here, trying to jump to declarations when there's an error
         would crash pasls server. }

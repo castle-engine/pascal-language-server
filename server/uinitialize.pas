@@ -35,8 +35,7 @@ uses
   SysUtils, Classes, CodeToolManager, CodeToolsConfig, URIParser, LazUTF8,
   DefineTemplates, FileUtil, LazFileUtils, LCLVersion, IdentCompletionTool,
   DOM, XMLRead, udebug, uutils, upackages, utextdocument,
-  CastleLsp, CastleArchitectures;
-
+  CastleLsp, CastleArchitectures, ULogVSCode;
 
 // Resolve the dependencies of Pkg, and then the dependencies of the
 // dependencies and so on. Uses global registry and paths locally specified in
@@ -93,8 +92,8 @@ end;
 //
 // Consider the following scenario:
 //
-//   A requires: 
-//     - B (found) 
+//   A requires:
+//     - B (found)
 //     - C (NOT found)
 //   B requires:
 //     - C (found)
@@ -248,7 +247,7 @@ begin
   if Pkg.Configured then
     exit;
   Pkg.Configured := True;
- 
+
   // Configure search path for package's (or project's) main source directory.
   ConfigureSearchPath(Pkg.Dir);
 
@@ -272,11 +271,11 @@ var
   DirName: string;
 begin
   Dirname := lowercase(ExtractFileName(Dir));
-  Result := 
-    (DirName = '.git')                              or 
+  Result :=
+    (DirName = '.git')                              or
     ((Length(DirName) >= 1) and (DirName[1] = '.')) or
-    (DirName = 'backup')                            or 
-    (DirName = 'lib')                               or 
+    (DirName = 'backup')                            or
+    (DirName = 'lib')                               or
     (Pos('.dsym', DirName) > 0)                     or
     (Pos('.app', DirName) > 0);
 end;
@@ -286,7 +285,7 @@ procedure LoadAllPackagesUnderPath(const Dir: string);
 var
   Packages,
   SubDirectories:    TStringList;
-  i:                 integer;     
+  i:                 integer;
   Pkg:               TPackage;
 begin
   if IgnoreDirectory(Dir) then
@@ -361,12 +360,10 @@ var
   Packages,
   SubDirectories:    TStringList;
   i:                 integer;
-  Paths:             TPaths;
 
   DirectoryTemplate,
   IncludeTemplate,
-  UnitPathTemplate,
-  SrcTemplate:       TDefineTemplate;
+  UnitPathTemplate: TDefineTemplate;
   Pkg:               TPackage;
 
 begin
@@ -441,13 +438,13 @@ var
   Doc:                TXMLDocument;
 
   Root,
-  EnvironmentOptions, 
-  FPCConfigs, 
+  EnvironmentOptions,
+  FPCConfigs,
   Item1:              TDomNode;
 
-  LazarusDirectory, 
-  FPCSourceDirectory, 
-  CompilerFilename, 
+  LazarusDirectory,
+  FPCSourceDirectory,
+  CompilerFilename,
   OS, CPU:            string;
 
   function LoadLazConfig(Path: string): Boolean;
@@ -485,15 +482,25 @@ var
 var
   CustomLazarusConfigDir: String;
 begin
+  { Preparing potential configuration folders and then trying to read
+    the settings from all of them one by one.
+    TODO: There can be potentional problem with order of checked path. }
+
   ConfigDirs := TStringList.Create;
   try
     CustomLazarusConfigDir := UserConfig.ReadString('lazarus', 'config', '');
     if CustomLazarusConfigDir <> '' then
       ConfigDirs.Add(ExcludeTrailingPathDelimiter(CustomLazarusConfigDir));
 
+    // add folder like C:\Users\<user>\AppData\Local\lazarus\
     ConfigDirs.Add(GetConfigDirForApp('lazarus', '', False));
+
+    // add folder like  C:\Users\<user>\\.lazarus
     ConfigDirs.Add(GetUserDir + DirectorySeparator + '.lazarus');
+
+    // add folder like C:\ProgramData\lazarus\
     ConfigDirs.Add(GetConfigDirForApp('lazarus', '', True));  ;
+
     for Dir in ConfigDirs do
     begin
       Doc := nil;
@@ -550,21 +557,78 @@ procedure Initialize(Rpc: TRpcPeer; Request: TRpcRequest);
     Result := TSyntaxErrorReportingMode(I)
   end;
 
+  function ParseStandardUnitsPaths(const StandardUnitsPaths: String): String;
+  var
+    I: Integer;
+    StandardUnitsPathsList: TStringList;
+  begin
+    DebugLog('StandardUnitsPaths from VSCode: ' + StandardUnitsPaths + LineEnding);
+
+    Result := '';
+    if Trim(StandardUnitsPaths) = '' then
+       Exit;
+
+    StandardUnitsPathsList := TStringList.Create;
+    try
+      StandardUnitsPathsList.Text := StandardUnitsPaths;
+      for i := 0 to StandardUnitsPathsList.Count -1 do
+      begin
+        if Trim(StandardUnitsPathsList[i]) = '' then
+           continue;
+        Result := Result + ' -Fu"' + StandardUnitsPathsList[i] + '"';
+      end;
+    finally
+      FreeAndNil(StandardUnitsPathsList);
+    end;
+  end;
+
+  function ParseProjectSearchPaths(
+    const ProjectSearchPaths, ProjectDirectory: String): String;
+  var
+    I: Integer;
+    ProjectSearchPathsList: TStringList;
+  begin
+    DebugLog('ProjectSearchPaths from VSCode: ' + ProjectSearchPaths + LineEnding);
+
+    Result := '';
+    if Trim(ProjectSearchPaths) = '' then
+       Exit;
+
+    ProjectSearchPathsList := TStringList.Create;
+    try
+      ProjectSearchPathsList.Text := ProjectSearchPaths;
+      for i := 0 to ProjectSearchPathsList.Count -1 do
+      begin
+        if Trim(ProjectSearchPathsList[i]) = '' then
+           continue;
+        Result := Result + ' -Fu"' +
+               IncludeTrailingPathDelimiter(ProjectDirectory) +
+               ProjectSearchPathsList[i] + '"';
+      end;
+    finally
+      FreeAndNil(ProjectSearchPathsList);
+    end;
+  end;
+
 var
   Options:   TCodeToolsOptions;
   Key:       string;
   s:         string;
   i:         Integer;
+  b:         Boolean;
   ExtraOptions: String;
 
   RootUri:   string;
   Directory: string;
+  StandardUnitsPaths: string;
+  ProjectSearchPaths: string;
   Response:  TRpcResponse;
   Reader:    TJsonReader;
   Writer:    TJsonWriter;
 begin
   Options  := nil;
   Response := nil;
+  EngineDeveloperMode := false;
 
   try
     Options := TCodeToolsOptions.Create;
@@ -586,7 +650,7 @@ begin
       FPCPath         := '/usr/local/bin/fpc';
       TestPascalFile  := '/tmp/testfile1.pas';
     end;
-    }     
+    }
 
     // Parse initializationOptions
     Reader := Request.Reader;
@@ -599,15 +663,21 @@ begin
           while (Reader.Advance <> jsDictEnd) and Reader.Key(Key) do
           begin
             if (Key = 'PP') and Reader.Str(s) then
-              Options.FPCPath := s
+              Options.FPCPath := '"' + s + '"'
             else if (Key = 'FPCDIR') and Reader.Str(s) then
-              Options.FPCSrcDir := s
+              Options.FPCSrcDir := '"' + s + '"'
             else if (Key = 'LAZARUSDIR') and Reader.Str(s) then
-              Options.LazarusSrcDir := s
+              Options.LazarusSrcDir := '"' + s + '"'
             else if (Key = 'FPCTARGET') and Reader.Str(s) then
               Options.TargetOS := s
             else if (Key = 'FPCTARGETCPU') and Reader.Str(s) then
               Options.TargetProcessor := s
+            else if (Key = 'fpcStandardUnitsPaths') and Reader.Str(s) then
+              StandardUnitsPaths := s
+            else if (Key = 'projectSearchPaths') and Reader.Str(s) then
+              ProjectSearchPaths := s
+            else if (Key = 'engineDevMode') and Reader.Bool(b) then
+              EngineDeveloperMode := b
             else if (Key = 'syntaxErrorReportingMode') and Reader.Number(i) then
               SyntaxErrorReportingMode := SyntaxErrorReportingModeFromInt(i);
           end;
@@ -652,8 +722,19 @@ begin
     DebugLog('', []);
     DebugLog(':: Castle Game Engine', []);
     ExtraOptions := ExtraFpcOptions;
-    Options.FPCOptions := Options.FPCOptions + ' ' + ExtraOptions;
-    DebugLog('  Adding compiler options: ' + ExtraOptions);
+    StandardUnitsPaths:= ParseStandardUnitsPaths(StandardUnitsPaths);
+    ParseWorkspacePaths(ProjectSearchPaths, Directory);
+    ProjectSearchPaths := ParseProjectSearchPaths(ProjectSearchPaths, Directory);
+    Options.FPCOptions := Options.FPCOptions + ' ' + ExtraOptions +
+                       ' ' + StandardUnitsPaths + ' ' + ProjectSearchPaths;
+    DebugLog('  Adding compiler extra options: ' + ExtraOptions + LineEnding);
+    if StandardUnitsPaths <> '' then
+      DebugLog('  Adding compiler standard Units Paths: ' + StandardUnitsPaths + LineEnding);
+
+    if ProjectSearchPaths <> '' then
+      DebugLog('  Adding project search paths: ' + ProjectSearchPaths + LineEnding);
+
+    DebugLog(' Options.FPCOptions : ' + Options.FPCOptions + LineEnding);
 
     DebugLog('', []);
     DebugLog(':: Searching global packages', []);
@@ -669,9 +750,9 @@ begin
 
       { LCL changed in
         https://gitlab.com/freepascal.org/lazarus/lazarus/-/commit/de3a85ac41a2f882500c2d479dff48bd7bbec7f1 ,
-        removing SortForScope (Boolean), 
+        removing SortForScope (Boolean),
         adding instead SortMethodForCompletion (enum).
-        The SortMethodForCompletion=icsScopedAlphabetic seems to be the equivalent 
+        The SortMethodForCompletion=icsScopedAlphabetic seems to be the equivalent
         of the old SortForScope=True. }
       {$if LCL_FULLVERSION >= 3000000}
       IdentifierList.SortMethodForCompletion := icsScopedAlphabetic;
@@ -707,9 +788,9 @@ begin
         Writer.Str('Pascal Language Server');
       Writer.DictEnd;
 
-      Writer.Key('capabilities');
+      Writer.Key('capabilities');  // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#clientCapabilities
       Writer.Dict;
-        Writer.Key('textDocumentSync');
+        Writer.Key('textDocumentSync'); // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocumentSyncOptions
         Writer.Dict;
           Writer.Key('openClose');
           Writer.Bool(true);
@@ -748,6 +829,12 @@ begin
 
         Writer.Key('definitionProvider');
         Writer.Bool(true);
+
+        Writer.Key('documentSymbolProvider');
+        Writer.Bool(true);
+
+        Writer.Key('workspaceSymbolProvider');
+        Writer.Bool(true);
       Writer.DictEnd;
 
       //Writer.Key('workspaceFolders');
@@ -755,6 +842,7 @@ begin
     Writer.DictEnd;
 
     Rpc.Send(Response);
+    LogTrace(Rpc, 'Initliasasas ');
   finally
     FreeAndNil(Options);
     FreeAndNil(Response);

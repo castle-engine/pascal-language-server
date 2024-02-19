@@ -131,6 +131,7 @@ begin
   try
     for Dir in SearchPaths do
     begin
+      DebugLog(' PopulateGlobalPackages search path ' + Dir + LineEnding);
       DebugLog('  %s/*.lpk', [Dir]);
       FindAllFiles(Files, Dir, '*.lpk');
     end;
@@ -138,10 +139,10 @@ begin
     for FileName in Files do
     begin
       Name := ExtractFileNameOnly(FileName);
+      DebugLog(' Global Package: ' + UpperCase(Name) + '  :' + FileName + LineEnding);
       PkgNameToPath[UpperCase(Name)] := FileName;
     end;
     DebugLog('  Found %d packages', [Files.Count]);
-
   finally
     Files.Free;
   end;
