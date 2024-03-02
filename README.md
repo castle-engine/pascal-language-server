@@ -1,25 +1,22 @@
-# Pascal Language Server
+# Castle Game Engine Pascal Language Server
 
-An [LSP](https://microsoft.github.io/language-server-protocol/) server
-implementation for Pascal variants that are supported by [Free
-Pascal](https://www.freepascal.org/). It uses
-[CodeTools](https://wiki.lazarus.freepascal.org/Codetools) from Lazarus as
-backend.
+This is an [LSP](https://microsoft.github.io/language-server-protocol/) for Pascal using [CodeTools](https://wiki.lazarus.freepascal.org/Codetools) from Lazarus under the hood. In simple terms: this application can provide code completion features, for Pascal code, to all text editors that may be _LSP clients_ (like _VS Code_, _Emacs_, _NeoVim_).
 
-https://github.com/Isopod/pascal-language-server notes:
+Distributed with [Castle Game Engine](https://castle-engine.io/). [Download](https://castle-engine.io/download) and install the engine and you will have the `bin/pasls` binary in the engine directory.
 
-Forked from [the original
-project](https://github.com/arjanadriaanse/pascal-language-server), but has
-since been mostly rewritten. This fork adds many new features and fixes several
-bugs.
+Cooperates with [Castle Game Engine VS Code extension](https://marketplace.visualstudio.com/items?itemName=castle-engine-team.castle-engine). Our VS Code extension can be used to build and run CGE projects, and it can integrate with this LSP server.
 
-## Castle Game Engine fork features
+## History
 
-Features of [Castle Game Engine fork](https://github.com/castle-engine/pascal-language-server):
+We are fork of [Philip Zander LSP Pascal server](https://github.com/Isopod/pascal-language-server/).
 
-- We are a fork of [Philip Zander LSP Pascal server](https://github.com/Isopod/pascal-language-server/)
+Which was in turm forked from https://github.com/arjanadriaanse/pascal-language-server , but has since been mostly rewritten.
 
-- We contribute back improvements that are not CGE-specific (see e.g. https://github.com/Isopod/pascal-language-server/pull/1 , https://github.com/Isopod/pascal-language-server/pull/2 , https://github.com/Isopod/pascal-language-server/pull/4 ).
+CGE fork contributes back improvements that are not CGE-specific (see e.g. https://github.com/Isopod/pascal-language-server/pull/1 , https://github.com/Isopod/pascal-language-server/pull/2 , https://github.com/Isopod/pascal-language-server/pull/4 ).
+
+## Castle Game Engine LSP server improvements
+
+- Works with [Castle Game Engine VS Code extension](https://marketplace.visualstudio.com/items?itemName=castle-engine-team.castle-engine) out-of-the-box. In this case, you should not need to use `castle-pasls.ini` -- just configure everything using VS Code extension settings.
 
 - We add capability to configure the LSP server using `castle-pasls.ini` to:
     - Define _Castle Game Engine_ path that will make `pasls` aware of CGE units and autocomplete CGE API.
@@ -29,10 +26,10 @@ Features of [Castle Game Engine fork](https://github.com/castle-engine/pascal-la
 
 - We can also auto-detect _Castle Game Engine_ path in some situations:
     - If the LSP server binary is distributed in `bin` of _Castle Game Engine_.
-    - Or if the environment 'CASTLE_ENGINE_PATH` is defined (but note that accessing environment is not possible when this is run by [VS Code extension](https://github.com/genericptr/pasls-vscode)).
+    - Or if the environment 'CASTLE_ENGINE_PATH` is defined.
     - Or if you're on Unix and using `/usr/src/castle-engine/` or `/usr/local/src/castle-engine/`.
 
-- We also pass _Castle Game Engine_ options that are also passed by [CGE build tool](https://castle-engine.io/build_tool) like `-Mobjfpc -Sm -Sc -Sg -Si -Sh`.
+- We also pass (to code completion engine) _Castle Game Engine_ options that are also passed by [CGE build tool](https://castle-engine.io/build_tool) like `-Mobjfpc -Sm -Sc -Sg -Si -Sh`.
 
 - We autodetect OS and CPU harder, and we fix OS=`windows` to proper `win64` or `win32` (common mistake, esp. because of https://github.com/genericptr/pasls-vscode/issues/1 ).
 
@@ -77,9 +74,7 @@ Full example setup of it is documented in [Michalis notes about LSP + Pascal](ht
 
 ### VS Code
 
-Install the VS Code extension from https://github.com/genericptr/pasls-vscode .
-
-Note that the extension settings expose some additional LSP options not understood by this LSP server. But the basic ones (FPC, Lazarus configs and the executable of LSP server) work completely fine with this LSP server.
+Install the [Castle Game Engine VS Code extension](https://marketplace.visualstudio.com/items?itemName=castle-engine-team.castle-engine).
 
 ### Other
 Any editor that allows you to add custom LSP configurations should work.
@@ -186,8 +181,8 @@ config=/home/michalis/installed/fpclazarus/current/config_lazarus/
 ;; 1. knowing paths to all CGE units (derived from this CGE path),
 ;; 2. using default CGE compilation settings, like -Mobjfpc and -Sh (used by CGE build tool and editor).
 ;;
-;; ( Alternatively to this you can define CASTLE_ENGINE_PATH environment variable,
-;; but note that VS Code integration prevents all environment variables from reaching pasls now. )
+;; NOTE: Instead of setting the engine path here,
+;; VS Code users should configure "Engine Path" in the VS Code extension settings.
 path=/home/michalis/sources/castle-engine/castle-engine/
 
 [extra_options]
