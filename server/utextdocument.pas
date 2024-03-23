@@ -530,6 +530,8 @@ begin
           Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
         );
 
+        AddIdentifierKind(Rec, Writer);
+
         { https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionItemLabelDetails }
         {Writer.Key('labelDetails');
         Writer.Dict;
