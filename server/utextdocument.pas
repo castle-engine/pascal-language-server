@@ -353,6 +353,12 @@ begin
     Writer.Key('label');
     Writer.Str(Rec.Text);
 
+    // text used to filter
+    Writer.Key('filterText');
+    Writer.Str(
+      Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
+    );
+
     Writer.Key('detail');
     Writer.Str(Rec.Desc);
   Writer.DictEnd;
