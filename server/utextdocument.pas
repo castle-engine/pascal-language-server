@@ -34,8 +34,14 @@ type
     sermErrorResponse = 2
   );
 
+  TIdentifierCodeCompletionStyle = (
+    ccsShowIdentifierWithParametersAndOverloads,
+    ccsShowOnlyUniqueIdentifier
+  );
+
 var
   SyntaxErrorReportingMode: TSyntaxErrorReportingMode = sermShowMessage;
+  IdentifierCodeCompletionStyle: TIdentifierCodeCompletionStyle = ccsShowIdentifierWithParametersAndOverloads;
 
 procedure TextDocument_DidOpen(Rpc: TRpcPeer; Request: TRpcRequest);
 procedure TextDocument_DidChange(Rpc: TRpcPeer; Request: TRpcRequest);
@@ -49,7 +55,7 @@ implementation
 uses
   Classes, SysUtils, URIParser, CodeToolManager, CodeCache, IdentCompletionTool,
   BasicCodeTools, PascalParserTool, CodeTree, FindDeclarationTool, LinkScanner,
-  CustomCodeTool, udebug, uutils;
+  CustomCodeTool, udebug, uutils, ULogVSCode;
 
 function ParseChangeOrOpen(
   Reader: TJsonReader; out Uri: string; out Content: string; IsChange: Boolean
@@ -137,14 +143,25 @@ type
     Identifier: TStringSlice;
     ResultType: TStringSlice;
     Parameters: array of TStringSlice;
-    Desc:       String;
+    Desc:       String; // TCodeTreeNodeDesc as string
+    IdentifierType: TCodeTreeNodeDesc;
   end;
 
   TCompletionCallback =
     procedure (const Rec: TCompletionRec; Writer: TJsonWriter);
 
+{
+ Gets completion records for curent position in code buffer and specified prefix.
+ Parameters:
+ Prefix - thing to search
+ Exact - only exact identifier (for procedure signature)
+ IncludeKeywords - include keywords in records
+ OnlyUnique - only one per overloaded functions
+ Callback - callback function to use (code completion or signature hint)
+ Writer - json writer used by callback }
 procedure GetCompletionRecords(
-  Code: TCodeBuffer; X, Y: Integer; Prefix: string; Exact: Boolean;
+  Code: TCodeBuffer; X, Y: Integer; const Prefix: string;
+  const Exact, IncludeKeywords, OnlyUnique: Boolean;
   Callback: TCompletionCallback; Writer: TJsonWriter
 );
 var
@@ -153,10 +170,12 @@ var
   ResultType:       string;
   Segment:          string;
   node, paramsNode: TCodeTreeNode;
+  childNode       : TCodeTreeNode;
   SegmentLen:       Integer;
   Rec:              TCompletionRec;
   CodeTool: TCodeTool;
   CodeTreeNode: TCodeTreeNode;
+  UniqueCheckStringList: TStringList;
 
   function AppendString(var S: string; Suffix: string): TStringSlice;
   begin
@@ -195,12 +214,14 @@ begin
     Rec.ResultType.b := 0;
     Rec.Parameters   := nil;
     Rec.Desc         := '';
+    Rec.IdentifierType := ctnNone;
     Callback(Rec, Writer);
     Exit;
   end;
 
   { Main code completion code }
   CodeToolBoss.IdentifierList.Prefix := Prefix;
+  CodeToolBoss.IdentComplIncludeKeywords := IncludeKeywords;
 
   if not CodeToolBoss.GatherIdentifiers(Code, X, Y) then
     raise ERpcError.Create(
@@ -213,74 +234,115 @@ begin
 
   Count := CodeToolBoss.IdentifierList.GetFilteredCount;
 
-  for i := 0 to Count - 1 do
-  begin
-    Identifier       := CodeToolBoss.IdentifierList.FilteredItems[i];
+  if OnlyUnique then
+    UniqueCheckStringList := TStringList.Create
+  else
+    UniqueCheckStringList := nil;
 
-    Rec.Text         := '';
-    Rec.Identifier.a := 0;
-    Rec.Identifier.b := 0;
-    Rec.ResultType.a := 0;
-    Rec.ResultType.b := 0;
-    Rec.Parameters   := nil;
-    Rec.Desc         := '';
-    ResultType       := '';
-
-    if (not Exact) or (CompareText(Identifier.Identifier, Prefix) = 0) then
+  try
+    for i := 0 to Count - 1 do
     begin
-      paramsNode := Identifier.Tool.GetProcParamList(identifier.Node);
-      if Assigned(paramsNode) then
+      Identifier       := CodeToolBoss.IdentifierList.FilteredItems[i];
+
+      Rec.Text         := '';
+      Rec.Identifier.a := 0;
+      Rec.Identifier.b := 0;
+      Rec.ResultType.a := 0;
+      Rec.ResultType.b := 0;
+      Rec.Parameters   := nil;
+      Rec.Desc         := '';
+      Rec.IdentifierType := ctnNone;
+      ResultType       := '';
+
+      if OnlyUnique then
       begin
-        ResultType :=
-          Identifier.Tool.ExtractProcHead(
-            identifier.Node,
-            [
-              phpWithoutName, phpWithoutParamList, phpWithoutSemicolon,
-              phpWithResultType, phpWithoutBrackets, phpWithoutGenericParams,
-              phpWithoutParamTypes
-            ]
-          ).Replace(':', '').Trim;
-
-        node := paramsNode.firstChild;
-
-        Rec.Identifier := AppendString(Rec.Text, Identifier.Identifier);
-        AppendString(Rec.Text, ' (');
-
-        SetLength(Rec.Parameters, paramsNode.ChildCount);
-
-        for j := 0 to paramsNode.ChildCount - 1 do
-        begin
-          Segment := Identifier.Tool.ExtractNode(node, []);
-          Segment := StringReplace(Segment, ':', ': ', [rfReplaceAll]);
-          Segment := StringReplace(Segment, '=', ' = ', [rfReplaceAll]);
-
-          Rec.Parameters[j] := AppendString(Rec.Text, Segment);
-
-          SegmentLen := Pos(':', Segment) - 1;
-          if SegmentLen <= 0 then
-            SegmentLen := Length(Segment);
-
-          if J <> paramsNode.ChildCount - 1 then
-            Rec.Text := Rec.Text + ', ';
-
-          node := node.NextBrother;
-        end;
-
-        AppendString(Rec.Text, ')');
-      end
-      else
-        Rec.Identifier := AppendString(Rec.Text, Identifier.Identifier);
-
-      if ResultType <> '' then
-      begin
-        AppendString(Rec.Text, ': ');
-        Rec.ResultType := AppendString(Rec.Text, ResultType);
+        if UniqueCheckStringList.IndexOf(Identifier.Identifier) <> -1 then
+          continue;
+        UniqueCheckStringList.Add(Identifier.Identifier);
       end;
 
-      Rec.Desc := Identifier.Node.DescAsString;
+      if (not Exact) or (CompareText(Identifier.Identifier, Prefix) = 0) then
+      begin
+        paramsNode := Identifier.Tool.GetProcParamList(identifier.Node);
+        if Assigned(paramsNode) then
+        begin
+          ResultType :=
+            Identifier.Tool.ExtractProcHead(
+              identifier.Node,
+              [
+                phpWithoutName, phpWithoutParamList, phpWithoutSemicolon,
+                phpWithResultType, phpWithoutBrackets, phpWithoutGenericParams,
+                phpWithoutParamTypes
+              ]
+            ).Replace(':', '').Trim;
 
-      Callback(Rec, Writer);
+          node := paramsNode.firstChild;
+
+          Rec.Identifier := AppendString(Rec.Text, Identifier.Identifier);
+          AppendString(Rec.Text, ' (');
+
+          SetLength(Rec.Parameters, paramsNode.ChildCount);
+
+          for j := 0 to paramsNode.ChildCount - 1 do
+          begin
+            Segment := Identifier.Tool.ExtractNode(node, []);
+            Segment := StringReplace(Segment, ':', ': ', [rfReplaceAll]);
+            Segment := StringReplace(Segment, '=', ' = ', [rfReplaceAll]);
+
+            Rec.Parameters[j] := AppendString(Rec.Text, Segment);
+
+            SegmentLen := Pos(':', Segment) - 1;
+            if SegmentLen <= 0 then
+              SegmentLen := Length(Segment);
+
+            if J <> paramsNode.ChildCount - 1 then
+              Rec.Text := Rec.Text + ', ';
+
+            node := node.NextBrother;
+          end;
+
+          AppendString(Rec.Text, ')');
+        end
+        else
+          Rec.Identifier := AppendString(Rec.Text, Identifier.Identifier);
+
+        if ResultType <> '' then
+        begin
+          AppendString(Rec.Text, ': ');
+          Rec.ResultType := AppendString(Rec.Text, ResultType);
+        end;
+
+        Rec.Desc := Identifier.Node.DescAsString;
+        if Identifier.Node <> nil then
+        begin
+          // for ctnTypeDefinition we need check first children
+          if Identifier.Node.Desc = ctnTypeDefinition then
+          begin
+            childNode := Identifier.Node.FirstChild;
+            if childNode <> nil then
+            begin
+              //if first children is ctnIdentifier
+              if childNode.Desc = ctnIdentifier then
+              begin
+                //TODO: I think here should be search identifier and get it type
+                Rec.IdentifierType := ctnNone;
+              end
+              else
+                Rec.IdentifierType := childNode.Desc;
+            end;
+          end
+          else
+            Rec.IdentifierType := Identifier.Node.Desc
+        end
+        else
+          Rec.IdentifierType := ctnUser;
+
+
+        Callback(Rec, Writer);
+      end;
     end;
+  finally
+    FreeAndNil(UniqueCheckStringList);
   end;
 end;
 
@@ -338,30 +400,155 @@ begin
 end;
 
 // Identifier completion
-
 procedure CompletionCallback(const Rec: TCompletionRec; Writer: TJsonWriter);
+
+  // https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionItemKind
+  procedure AddIdentifierKind(const Rec: TCompletionRec; Writer: TJsonWriter);
+  begin
+    DebugLog(Rec.Text + ' = ' + IntToStr(Rec.IdentifierType));
+    case Rec.IdentifierType of
+      ctnNone:
+        Exit;
+
+      ctnProcedure, ctnProcedureHead:
+      begin
+        Writer.Key('kind');
+        Writer.Number(2); // method
+      end;
+
+      ctnBeginBlock, ctnSpecialize, ctnFinalization, ctnUser, ctnUnit, ctnInterface:
+      begin
+        Writer.Key('kind');
+        Writer.Number(14); // keyword
+      end;
+
+      ctnClass:
+      begin
+        Writer.Key('kind');
+        Writer.Number(7); //class
+      end;
+
+      ctnEnumerationType:
+      begin
+        Writer.Key('kind');
+        Writer.Number(13); //enum
+      end;
+
+      ctnRangedArrayType:
+      begin
+        Writer.Key('kind');
+        Writer.Number(12); // value? - I do not know what to choose
+      end;
+
+      ctnConstDefinition:
+      begin
+        Writer.Key('kind');
+        Writer.Number(21); // constant
+      end;
+
+      ctnVarDefinition:
+      begin
+        Writer.Key('kind');
+        Writer.Number(6); // variable
+      end;
+
+      ctnEnumIdentifier:
+      begin
+        Writer.Key('kind');
+        Writer.Number(20); // enum member
+      end;
+
+      ctnUseUnitClearName:
+      begin
+        Writer.Key('kind');
+        Writer.Number(9); // module
+      end;
+
+      ctnGlobalProperty, ctnProperty:
+      begin
+        Writer.Key('kind');
+        Writer.Number(10); // property
+      end;
+
+      ctnTypeType, ctnTypeHelper:
+      begin
+        Writer.Key('kind');
+        Writer.Number(25); // type?
+      end;
+    end;
+  end;
+
 begin
-  Writer.Dict;
-    Writer.Key('insertText');
-    Writer.Str(
-      Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
-    );
+  case IdentifierCodeCompletionStyle of
+    ccsShowIdentifierWithParametersAndOverloads:
+    begin
+      // old style but fixed filtertext
 
-    Writer.Key('insertTextFormat');
-    Writer.Number(1); // 1 = Plain Text
+      Writer.Dict;
+        Writer.Key('insertText');
+        Writer.Str(
+          Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
+        );
 
-    Writer.Key('label');
-    Writer.Str(Rec.Text);
+        Writer.Key('insertTextFormat');
+        Writer.Number(1); // 1 = Plain Text
 
-    // text used to filter
-    Writer.Key('filterText');
-    Writer.Str(
-      Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
-    );
+        Writer.Key('label');
+        Writer.Str(Rec.Text);
 
-    Writer.Key('detail');
-    Writer.Str(Rec.Desc);
-  Writer.DictEnd;
+        // text used to filter completion hint when we type
+        Writer.Key('filterText');
+        Writer.Str(
+          Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
+        );
+
+        AddIdentifierKind(Rec, Writer);
+
+        Writer.Key('detail');
+        Writer.Str(Rec.Desc);
+      Writer.DictEnd;
+    end;
+    ccsShowOnlyUniqueIdentifier:
+    begin
+      Writer.Dict;
+        Writer.Key('insertText');
+        Writer.Str(
+          Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
+        );
+
+        Writer.Key('insertTextFormat');
+        Writer.Number(1); // 1 = Plain Text
+
+        Writer.Key('label');
+        Writer.Str(
+          Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
+        );
+
+        // text used to filter completion hint when we type
+        Writer.Key('filterText');
+        Writer.Str(
+          Copy(Rec.Text, Rec.Identifier.a, Rec.Identifier.b - Rec.Identifier.a)
+        );
+
+        { https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionItemLabelDetails }
+        {Writer.Key('labelDetails');
+        Writer.Dict;
+          Writer.Key('detail');
+          Writer.Str(Rec.Text);
+
+          Writer.Key('description');
+          Writer.Str(Rec.Desc);
+        Writer.DictEnd;}
+
+        Writer.Key('detail');
+        Writer.Str(Rec.Text);
+
+        Writer.Key('documentation');
+        Writer.Str(Rec.Desc);
+
+      Writer.DictEnd;
+    end;
+  end;
 end;
 
 function GetPrefix(Code: TCodeBuffer; X, Y: integer): string;
@@ -489,10 +676,18 @@ begin
 
         Writer.Key('items');
         Writer.List;
-          GetCompletionRecords(
-            Code, Req.X + 1, Req.Y + 1, Prefix, false,
-            @CompletionCallback, Writer
-          );
+        case IdentifierCodeCompletionStyle of
+          ccsShowIdentifierWithParametersAndOverloads:
+            GetCompletionRecords(
+              Code, Req.X + 1, Req.Y + 1, Prefix, false, true, false,
+              @CompletionCallback, Writer
+            );
+          ccsShowOnlyUniqueIdentifier:
+            GetCompletionRecords(
+              Code, Req.X + 1, Req.Y + 1, Prefix, false, true, true,
+              @CompletionCallback, Writer
+            );
+        end;
         Writer.ListEnd;
       Writer.DictEnd;
 
@@ -638,7 +833,7 @@ begin
         Writer.Key('signatures');
         Writer.List;
           GetCompletionRecords(
-            Code, Req.X, Req.Y, ProcName, true, @SignatureCallback, Writer
+            Code, Req.X, Req.Y, ProcName, true, false, false, @SignatureCallback, Writer
           );
         Writer.ListEnd;
 
