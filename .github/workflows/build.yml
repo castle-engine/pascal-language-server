@@ -1,0 +1,45 @@
+# ----------------------------------------------------------------------------
+# GitHub Actions workflow to test building pasls (server).
+#
+# To check
+# - whether it builds,
+# - whether the FPC and Lazarus versions in our
+#   Docker image are sufficient.
+#   (Right now, IdentComplIncludeKeywords requires Lazarus >= 3.0.0).
+#
+# This uses GitHub-hosted runners, that is: you don't need to set up any server
+# infrastructure, GitHub provides it all for free for open-source projects.
+#
+# See docs:
+# - https://castle-engine.io/github_actions
+# - https://docs.github.com/en/actions
+# ----------------------------------------------------------------------------
+
+name: Build
+on: [push, pull_request]
+
+jobs:
+  build-in-docker:
+    name: Build (Docker)
+    runs-on: ubuntu-latest
+    container: kambi/castle-engine-cloud-builds-tools:cge-none
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile Server
+        run: lazbuid server/pasls.lpi
+
+  build:
+    name: Build (Not Docker)
+    strategy:
+      matrix:
+        operating-system: [windows-latest, ubuntu-latest, macos-latest]
+        lazarus-versions: [stable, 3.0]
+    runs-on: ${{ matrix.operating-system }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install FPC+Lazarus
+        uses: gcarreno/setup-lazarus@v3.2.17
+        with:
+          lazarus-version: ${{ matrix.lazarus-versions }}
+      - name: Compile Server
+        run: lazbuid server/pasls.lpi
