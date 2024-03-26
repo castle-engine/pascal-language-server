@@ -45,5 +45,8 @@ jobs:
         uses: gcarreno/setup-lazarus@v3.2.17
         with:
           lazarus-version: ${{ matrix.lazarus-versions }}
+          # Having issues with cache in https://github.com/castle-engine/pascal-language-server/actions/runs/8438772805
+          # on Linux and macOS (it is disabled on Windows by default already)
+          with-cache: false
       - name: Compile Server
         run: lazbuild server/pasls.lpi
