@@ -33,7 +33,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [windows-latest, ubuntu-latest, macos-latest]
-        lazarus-versions: [stable, 3.0]
+        lazarus-versions: [stable, "3.0"]
     runs-on: ${{ matrix.operating-system }}
     steps:
       - uses: actions/checkout@v4
