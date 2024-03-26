@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile Server
-        run: lazbuid server/pasls.lpi
+        run: lazbuild server/pasls.lpi
 
   build:
     name: Build (Not Docker)
@@ -42,4 +42,4 @@ jobs:
         with:
           lazarus-version: ${{ matrix.lazarus-versions }}
       - name: Compile Server
-        run: lazbuid server/pasls.lpi
+        run: lazbuild server/pasls.lpi
