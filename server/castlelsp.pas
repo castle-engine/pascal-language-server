@@ -171,8 +171,11 @@ end;
 
 function GetCastleEnginePath: String;
 begin
+  // use castle-pasls.ini
+  Result := UserConfig.ReadString('castle', 'path', '');
   // try to find CGE on $CASTLE_ENGINE_PATH
-  Result := GetCastleEnginePathFromEnv;
+  if Result = '' then
+    Result := GetCastleEnginePathFromEnv;
   // try to find CGE on path relative to current exe
   if Result = '' then
     Result := GetCastleEnginePathFromExeName;
@@ -242,9 +245,7 @@ var
 begin
   Result := CastleOtherOptions;
 
-  CastleEnginePath := UserConfig.ReadString('castle', 'path', '');
-  if CastleEnginePath = '' then
-    CastleEnginePath := GetCastleEnginePath;
+  CastleEnginePath := GetCastleEnginePath;
   if CastleEnginePath <> '' then
   begin
     DebugLog('  Castle Game Engine path detected: %s', [CastleEnginePath]);
