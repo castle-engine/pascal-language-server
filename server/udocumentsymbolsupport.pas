@@ -51,7 +51,7 @@ type
 
   TSymbolTags = set of TSymbolTag;
 
-  procedure TextDocument_DocumentSymbol(Rpc: TRpcPeer; Request: TRpcRequest);
+  procedure TextDocument_DocumentSymbol(const Rpc: TRpcPeer; const Request: TRpcRequest);
 
 implementation
 
@@ -78,9 +78,25 @@ begin
   Result := URIToFileNameEasy(Uri);
 end;
 
+{ Return null response, that signals "no error, but also no result". }
+procedure SendNullResponse(const Rpc: TRpcPeer; const Request: TRpcRequest);
+var
+  Response: TRpcResponse;
+  Writer:   TJsonWriter;
+begin
+  Response := TRpcResponse.Create(Request.Id);
+  try
+    Writer := Response.Writer;
+    Writer.Null;
+    Rpc.Send(Response);
+  finally
+    FreeAndNil(Response);
+  end;
+end;
+
 { Responses for textDocument/documentSymbol method
   Docs: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol }
-procedure TextDocument_DocumentSymbol(Rpc: TRpcPeer; Request: TRpcRequest);
+procedure TextDocument_DocumentSymbol(const Rpc: TRpcPeer; const Request: TRpcRequest);
 var
   Filename: String;
   Code: TCodeBuffer;
@@ -111,23 +127,21 @@ begin
   CodeToolBoss.Explore(Code, CodeTool, false, false);
 
   if CodeTool = nil then
-    raise ERpcError.Create(jsrpcRequestFailed, 'File explore don''t return code tool.');
+  begin
+    { This happens when opening include file without MainUnit,
+      like https://github.com/castle-engine/castle-engine/blob/master/src/common_includes/castleconf.inc .
+      Return null (not any error) in response.}
+    SendNullResponse(Rpc, Request);
+    Exit;
+  end;
 
   if CodeTool.Tree = nil then
     raise ERpcError.Create(jsrpcRequestFailed, 'Code tool tree is nil.');
 
-  { This check fails when pas file is empty, return null in response }
   if CodeTool.Tree.Root = nil then
   begin
-    Response := nil;
-    try
-      Response := TRpcResponse.Create(Request.Id);
-      Writer   := Response.Writer;
-      Writer.Null;
-      Rpc.Send(Response);
-    finally
-      FreeAndNil(Response);
-    end;
+    { This happens when pas file is empty, return null (not any error) in response. }
+    SendNullResponse(Rpc, Request);
     Exit;
   end;
 
@@ -143,18 +157,11 @@ begin
   if CodeTreeNode = nil then
     CodeTreeNode := CodeTool.FindInterfaceNode;
 
-  { This check fails there is no interface and implementation in file }
   if CodeTreeNode = nil then
   begin
-    Response := nil;
-    try
-      Response := TRpcResponse.Create(Request.Id);
-      Writer   := Response.Writer;
-      Writer.Null;
-      Rpc.Send(Response);
-    finally
-      FreeAndNil(Response);
-    end;
+    { This happens when there is no interface and implementation in file,
+      return null (not any error) in response. }
+    SendNullResponse(Rpc, Request);
     Exit;
   end;
 

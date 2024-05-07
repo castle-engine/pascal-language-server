@@ -148,8 +148,11 @@ begin
 
         CodeToolBoss.Explore(Code, CodeTool, false, false);
 
+        { This happens when opening include file without MainUnit,
+          like https://github.com/castle-engine/castle-engine/blob/master/src/common_includes/castleconf.inc .
+          Return empty response. }
         if CodeTool = nil then
-          raise ERpcError.Create(jsrpcRequestFailed, 'File explore don''t return code tool.');
+          Continue;
 
         if CodeTool.Tree = nil then
           raise ERpcError.Create(jsrpcRequestFailed, 'Code tool tree is nil.');
