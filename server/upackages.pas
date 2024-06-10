@@ -21,6 +21,21 @@ unit upackages;
 
 {$mode objfpc}{$H+}
 
+{ This unit uses FPC XML units, that have DOMString = UnicodeString,
+  and gets/sets strings as AnsiString. This causes warnings:
+
+    server/upackages.pas(167,38) Warning: (4104) Implicit string type conversion from "AnsiString" to "UnicodeString"
+    server/upackages.pas(173,14) Warning: (4105) Implicit string type conversion with potential data loss from "UnicodeString" to "AnsiString"
+    server/upackages.pas(239,26) Warning: (4105) Implicit string type conversion with potential data loss from "UnicodeString" to "AnsiString"
+    server/upackages.pas(253,56) Warning: (4105) Implicit string type conversion with potential data loss from "UnicodeString" to "AnsiString"
+
+  TODO: Make sure it is really OK to ignore these warnings,
+  by making sure AnsiStrings contain UTF-8 on all platforms,
+  like Lazarus LCL and Castle Game Engine do.
+  And making sure we have WideString manager or such initialized. }
+{$warn 4104 off}
+{$warn 4105 off}
+
 interface
 
 type
@@ -196,11 +211,11 @@ var
       Exit;
 
     Package.Paths.IncludePath := MergePaths([
-      Package.Paths.IncludePath, 
+      Package.Paths.IncludePath,
       GetAdditionalPaths(SearchPaths, 'IncludeFiles')
     ]);
     Package.Paths.UnitPath    := MergePaths([
-      Package.Paths.UnitPath, 
+      Package.Paths.UnitPath,
       GetAdditionalPaths(SearchPaths, 'OtherUnitFiles')
     ]);
     Package.Paths.SrcPath     := GetAdditionalPaths(SearchPaths, 'SrcPath');
@@ -208,7 +223,7 @@ var
 
   procedure LoadDeps;
   var
-    Deps, Item, Name, 
+    Deps, Item, Name,
     Path, Prefer:      TDomNode;
     Dep:               TDependency;
     i, DepCount:       Integer;
@@ -236,7 +251,7 @@ var
       if not Assigned(Name) then
         continue;
 
-      Dep.Name    := Name.NodeValue; 
+      Dep.Name    := Name.NodeValue;
       Dep.Prefer  := False;
       Dep.Package := nil;
       Dep.Path    := '';
