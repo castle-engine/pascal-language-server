@@ -79,97 +79,104 @@ begin
   UserConfig := TIniFile.Create(FileName);
 end;
 
-{ Check is Path a sensible CGE sources path.
-  Requires Path to end with PathDelim. }
-function CheckCastlePath(const Path: String): Boolean;
-begin
-  Result :=
-    DirectoryExists(Path + 'src') and
-    DirectoryExists(Path + 'tools' + PathDelim + 'build-tool' + PathDelim + 'data');
-end;
-
-function GetCastleEnginePathFromEnv: String;
-begin
-  Result := GetEnvironmentVariable('CASTLE_ENGINE_PATH');
-  if Result = '' then
-    Exit;
-
-  Result := IncludeTrailingPathDelimiter(Result);
-  if CheckCastlePath(Result) then
-    Exit;
-
-  Result := '';
-end;
-
-function ExeName: String;
-{$if defined(LINUX)}
-var
-  ExeLinkName: String;
-begin
-  ExeLinkName := '/proc/' + IntToStr(FpGetpid) + '/exe';
-  Result := FpReadLink(ExeLinkName);
-{$elseif defined(MSWINDOWS)}
-var
-  S: UnicodeString;
-begin
-  SetLength(S, MAX_PATH);
-  if GetModuleFileNameW(0, PWideChar(@S[1]), MAX_PATH) = 0 then
-  begin
-    // WritelnWarning('GetModuleFileNameW failed. We will use old method to determine ExeName, which will fail if parent directory contains local characters');
-    Exit(ParamStr(0)); // fallback to old method
-  end;
-  SetLength(S, StrLen(PWideChar(S))); // It's only null-terminated after WinAPI call, set actual length for Pascal UnicodeString
-  Result := UTF8Encode(S);
-{$else}
-begin
-  Result := ParamStr(0); // On non-Windows OSes, using ParamStr(0) for this is not reliable, but at least it's some default
-{$endif}
-end;
-
-function GetCastleEnginePathFromExeName: String;
-var
-  ToolDir: String;
-begin
-  ToolDir := ExtractFileDir(ExeName);
-
-  { in case we're inside macOS bundle, use bundle path.
-    This makes detection in case of CGE editor work OK. }
-  {$ifdef DARWIN}
-  // TODO: copy BundlePath from CGE? Or use CGE units here?
-  // if BundlePath <> '' then
-  //   ToolDir := ExtractFileDir(ExclPathDelim(BundlePath));
-  {$endif}
-
-  { Check ../ of current exe, makes sense in released CGE version when
-    tools are precompiled in bin/ subdirectory. }
-  Result := IncludeTrailingPathDelimiter(ExtractFileDir(ToolDir));
-  if CheckCastlePath(Result) then
-    Exit;
-  { Check ../../ of current exe, makes sense in development when
-    each tool is compiled by various scripts in tools/xxx/ subdirectory. }
-  Result := IncludeTrailingPathDelimiter(ExtractFileDir(ExtractFileDir(ToolDir)));
-  if CheckCastlePath(Result) then
-    Exit;
-
-  Result := '';
-end;
-
-function GetCastleEnginePathSystemWide: String;
-begin
-  {$ifdef UNIX}
-  Result := '/usr/src/castle-engine/';
-  if CheckCastlePath(Result) then
-    Exit;
-
-  Result := '/usr/local/src/castle-engine/';
-  if CheckCastlePath(Result) then
-    Exit;
-  {$endif}
-
-  Result := '';
-end;
-
+{ Detect Castle Game Engine path using various methods.
+  Returns '' if cannot be detected, or absolute path (always ends with PathDelim)
+  that was detected.
+  The returned path, if non-empty, passed basic tests that
+  it contains common CGE files/dirs. }
 function GetCastleEnginePath: String;
+
+  { Check is Path a sensible CGE sources path.
+    Requires Path to end with PathDelim. }
+  function CheckCastlePath(const Path: String): Boolean;
+  begin
+    Result :=
+      FileExists(Path + 'castle-fpc.cfg') and
+      DirectoryExists(Path + 'src') and
+      DirectoryExists(Path + 'tools' + PathDelim + 'build-tool' + PathDelim + 'data');
+  end;
+
+  function GetCastleEnginePathFromEnv: String;
+  begin
+    Result := GetEnvironmentVariable('CASTLE_ENGINE_PATH');
+    if Result = '' then
+      Exit;
+
+    Result := IncludeTrailingPathDelimiter(Result);
+    if CheckCastlePath(Result) then
+      Exit;
+
+    Result := '';
+  end;
+
+  function ExeName: String;
+  {$if defined(LINUX)}
+  var
+    ExeLinkName: String;
+  begin
+    ExeLinkName := '/proc/' + IntToStr(FpGetpid) + '/exe';
+    Result := FpReadLink(ExeLinkName);
+  {$elseif defined(MSWINDOWS)}
+  var
+    S: UnicodeString;
+  begin
+    SetLength(S, MAX_PATH);
+    if GetModuleFileNameW(0, PWideChar(@S[1]), MAX_PATH) = 0 then
+    begin
+      // WritelnWarning('GetModuleFileNameW failed. We will use old method to determine ExeName, which will fail if parent directory contains local characters');
+      Exit(ParamStr(0)); // fallback to old method
+    end;
+    SetLength(S, StrLen(PWideChar(S))); // It's only null-terminated after WinAPI call, set actual length for Pascal UnicodeString
+    Result := UTF8Encode(S);
+  {$else}
+  begin
+    Result := ParamStr(0); // On non-Windows OSes, using ParamStr(0) for this is not reliable, but at least it's some default
+  {$endif}
+  end;
+
+  function GetCastleEnginePathFromExeName: String;
+  var
+    ToolDir: String;
+  begin
+    ToolDir := ExtractFileDir(ExeName);
+
+    { in case we're inside macOS bundle, use bundle path.
+      This makes detection in case of CGE editor work OK. }
+    {$ifdef DARWIN}
+    // TODO: copy BundlePath from CGE? Or use CGE units here?
+    // if BundlePath <> '' then
+    //   ToolDir := ExtractFileDir(ExclPathDelim(BundlePath));
+    {$endif}
+
+    { Check ../ of current exe, makes sense in released CGE version when
+      tools are precompiled in bin/ subdirectory. }
+    Result := IncludeTrailingPathDelimiter(ExtractFileDir(ToolDir));
+    if CheckCastlePath(Result) then
+      Exit;
+    { Check ../../ of current exe, makes sense in development when
+      each tool is compiled by various scripts in tools/xxx/ subdirectory. }
+    Result := IncludeTrailingPathDelimiter(ExtractFileDir(ExtractFileDir(ToolDir)));
+    if CheckCastlePath(Result) then
+      Exit;
+
+    Result := '';
+  end;
+
+  function GetCastleEnginePathSystemWide: String;
+  begin
+    {$ifdef UNIX}
+    Result := '/usr/src/castle-engine/';
+    if CheckCastlePath(Result) then
+      Exit;
+
+    Result := '/usr/local/src/castle-engine/';
+    if CheckCastlePath(Result) then
+      Exit;
+    {$endif}
+
+    Result := '';
+  end;
+
 begin
   // use castle-pasls.ini
   Result := UserConfig.ReadString('castle', 'path', '');
@@ -252,7 +259,7 @@ begin
     Result := Result + CastleOptionsFromCfg(CastleEnginePath);
   end else
   begin
-    DebugLog('  WARNING: Castle Game Engine path not detected, completion of CGE API will not work.', [CastleEnginePath]);
+    DebugLog('  WARNING: Castle Game Engine path not detected, completion of CGE API will not work.', []);
   end;
 
   ExtraOptionIndex := 1;
@@ -268,10 +275,37 @@ end;
 
 
 procedure ParseWorkspacePaths(const ProjectSearchPaths, ProjectDirectory: String);
+
+  { Parse castle-fpc.cfg for units paths.
+    Adds absolute paths (beginning with CastleEnginePath) to UnitsPaths.
+    CastleEnginePath cannot be '' when calling this function. }
+  procedure AddEngineUnitsPathsFromCfg(const CastleEnginePath: String; const UnitsPaths: TStrings);
+  var
+    CastleFpcCfg: TStringList;
+    UntrimmedS, S: String;
+  begin
+    Assert(CastleEnginePath <> '');
+    CastleFpcCfg := TStringList.Create;
+    try
+      CastleFpcCfg.LoadFromFile(CastleEnginePath + 'castle-fpc.cfg');
+      for UntrimmedS in CastleFpcCfg do
+      begin
+        S := Trim(UntrimmedS);
+        { Note that we look at units paths (-Fu) and ignore include paths (-Fi).
+          Reason: The output of this is used with WorkspaceSymbol,
+          that only uses these paths to scan for .pas files (units) anyway.
+          Besides, in case of castle-fpc.cfg, the -Fi mostly duplicate -Fu anyway. }
+        if S.Startswith('-Fu', true) then
+        begin
+          Delete(S, 1, 3);
+          UnitsPaths.Add(CastleEnginePath + S);
+        end;
+      end;
+    finally FreeAndNil(CastleFpcCfg) end;
+  end;
+
 var
   I: Integer;
-  CastleFpcCfg: TStringList;
-  UntrimmedS, S: String;
   CastleEnginePath: String;
 begin
   if Trim(ProjectSearchPaths) = '' then
@@ -283,26 +317,17 @@ begin
 
   WorkspacePaths.Insert(0, ProjectDirectory);
 
-
   WorkspaceAndEnginePaths.Text := WorkspacePaths.Text;
 
   CastleEnginePath := GetCastleEnginePath;
-
-  CastleFpcCfg := TStringList.Create;
-  try
-    CastleFpcCfg.LoadFromFile(CastleEnginePath + 'castle-fpc.cfg');
-    for UntrimmedS in CastleFpcCfg do
-    begin
-      S := Trim(UntrimmedS);
-      if S.Startswith('-Fu', true) then
-      begin
-        Delete(S, 1, 3);
-        WorkspaceAndEnginePaths.Add(CastleEnginePath + S);
-      end;
-    end;
-  finally FreeAndNil(CastleFpcCfg) end;
+  if CastleEnginePath <> '' then
+  begin
+    AddEngineUnitsPathsFromCfg(CastleEnginePath, WorkspaceAndEnginePaths);
+  end else
+  begin
+    DebugLog('  WARNING: Castle Game Engine path not detected, jumping to CGE symbols (in "Engine Developer Mode") will not work.', []);
+  end;
 end;
-
 
 initialization
   WorkspacePaths := TStringList.Create;
