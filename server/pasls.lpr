@@ -108,7 +108,7 @@ begin
       Request := Rpc.Receive;
 
       if Request = nil then
-      begin  
+      begin
         DebugLog('** End of stream, exiting **');
         exit;
       end;
@@ -124,6 +124,28 @@ begin
       except
         on E: ERpcError do
           SendError(Rpc, Request.Id, E.Code, E.Message);
+
+        { Catching all exceptions to prevent server from crashing,
+          this seems the easiest solution to deal with various ways how
+          Lazarus code tools can raise exception on invalid/in-progress code.
+
+          E.g. TextDocument_DocumentSymbol failing for cge-effekseer:
+          {"jsonrpc":"2.0","id":1,"method":"textDocument/documentSymbol","params":{"textDocument":{"uri":"file:///home/michalis/sources/castle-engine/cge-effekseer/src/CastleEffekseer.pas"}}}
+          < Response:
+          {"jsonrpc":"2.0","method":"window/logMessage","params":{"type":3,"message":"File name:/home/michalis/sources/castle-engine/cge-effekseer/src/CastleEffekseer.pas"}}
+          FATAL EXCEPTION: expected :, but const found
+
+          This change captures it and reports:
+          Exception ECodeToolError while dispatching request textDocument/documentSymbol: expected :, but PassParams found
+        }
+        on E: Exception do
+        begin
+          DebugLog('Exception %s while dispatching request %s: %s', [
+            E.ClassName,
+            Request.Method,
+            E.Message
+          ]);
+        end;
       end;
     finally
       FreeAndNil(Request);
@@ -259,7 +281,7 @@ begin
       end;
       Tee          := TTeeStream.Create(InputStream, Transcript);
       RpcPeer      := TRpcPeer.Create(Tee, OutputStream);
-    end 
+    end
     else if LoadReplay then
     begin
       InputStream  := TFileStream.Create(TranscriptPath, fmOpenRead);
