@@ -125,7 +125,7 @@ begin
         on E: ERpcError do
           SendError(Rpc, Request.Id, E.Code, E.Message);
 
-        { Catching all exceptions to prevent server from crashing,
+        (*Catching all exceptions to prevent server from crashing,
           this seems the easiest solution to deal with various ways how
           Lazarus code tools can raise exception on invalid/in-progress code.
 
@@ -137,7 +137,7 @@ begin
 
           This change captures it and reports:
           Exception ECodeToolError while dispatching request textDocument/documentSymbol: expected :, but PassParams found
-        }
+        *)
         on E: Exception do
         begin
           DebugLog('Exception %s while dispatching request %s: %s', [
