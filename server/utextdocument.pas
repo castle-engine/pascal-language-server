@@ -229,11 +229,7 @@ begin
   if not CodeToolBoss.GatherIdentifiers(Code, X, Y) then
     raise ERpcError.Create(
       jsrpcRequestFailed,
-      Format('Line %d: %s', [
-        CodeToolBoss.ErrorLine,
-        CodeToolBoss.ErrorMessage
-      ])
-    );
+      PositionForErrorPrefix(CodeToolBoss) + CodeToolBoss.ErrorMessage);
 
   Count := CodeToolBoss.IdentifierList.GetFilteredCount;
 
@@ -992,7 +988,7 @@ begin
         // has id 20170421200105 so we then do not show message window in vscode
         if E.Id <> 20170421200105 then
         begin
-          ShowErrorMessage(Rpc, E.Message);
+          ShowErrorMessage(Rpc, PositionForErrorPrefix(E) + E.Message);
         end;
       end;
       { ELinkScannerError is raised from FindDeclaration e.g. when include file is missing.
