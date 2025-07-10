@@ -24,6 +24,8 @@ CGE fork contributes back improvements that are not CGE-specific (see e.g. https
     - Provide custom Lazarus config location (useful if you install Lazarus by [fpcupdeluxe](https://castle-engine.io/fpcupdeluxe) but still want `pasls` to read Lazarus config -- this is optional).
     - Improve debugging by known log filename and more complete JSON logs.
 
+- We add capability to configure the LSP server using `castle-pasls-paths.txt`, see below.
+
 - We can also auto-detect _Castle Game Engine_ path in some situations:
     - If the LSP server binary is distributed in `bin` of _Castle Game Engine_.
     - Or if the environment 'CASTLE_ENGINE_PATH` is defined.
@@ -144,7 +146,7 @@ Additional keys in LSP initialization options can be used to influence the LSP s
 
     - 2: Return an error to the LSP client. Some LSP clients will just hide the error, but some (like Emacs) will show it clearly and prominently.
 
-## Extra configuration in castle-engine/pascal-language-server
+## Extra configuration in castle-engine/pascal-language-server (castle-pasls.ini)
 
 The `pasls` reads configuration file `castle-pasls.ini` in user config dir to enable some additional features.
 
@@ -192,6 +194,24 @@ path=/home/michalis/sources/castle-engine/castle-engine/
 option_1=-Fu/home/michalis/sources/castle-engine/castle-engine/tests/code/tester-fpcunit
 option_2=-dSOME_DEFINE
 option_3=-dSOMETHING_MORE
+```
+
+## Extra paths from `castle-pasls-paths.txt`
+
+We also read `castle-pasls-paths.txt` file in the same directory as `castle-pasls.ini`.
+
+The format of this is simpler: any line that is not empty and does not start with `#` (comment) is considered a path to add to FPC search paths. It is added as both units and include paths (causes both `-Fu` and `-Fi` for FPC).
+
+This is useful e.g. to add paths to all your custom units, that you want to be available for autocompletion. It would be also possible to do this by extending `[extra_options]` in `castle-pasls.ini`, but that's sometimes too bothersome: you need to add them twice (if you want both `-Fu` and `-Fi`) and you need to remember to keep order of `option_xxx`.
+
+Example:
+
+```
+# This is a comment, ignored.
+# Add all my custom units.
+/home/michalis/sources/my-units/
+/home/michalis/sources/more-units-and-include-files/
+/home/michalis/sources/more-units-and-include-files/subdirectory/
 ```
 
 ## Roadmap

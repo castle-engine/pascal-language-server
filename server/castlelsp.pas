@@ -1,5 +1,5 @@
 {
-  Copyright 2022-2024 Michalis Kamburelis
+  Copyright 2022-2025 Michalis Kamburelis
 
   Extensions to the Pascal Language Server specific to Castle Game Engine.
   See https://github.com/michaliskambi/elisp/tree/master/lsp
@@ -26,10 +26,11 @@ interface
 uses Classes, IniFiles;
 
 var
-  UserConfig: TIniFile;
-  WorkspacePaths: TStringList; // paths to search by workspace symbols
-  WorkspaceAndEnginePaths: TStringList; // paths to search by workspace symbols in engine developer mode
-  EngineDeveloperMode: Boolean; // add engine paths to workspace symbols?
+  UserConfig: TIniFile; //< for reading ~/.config/pasls/castle-pasls.ini
+  UserConfigPaths: TStringList; //< for reading ~/.config/pasls/castle-pasls-paths.txt
+  WorkspacePaths: TStringList; //< paths to search by workspace symbols
+  WorkspaceAndEnginePaths: TStringList; //< paths to search by workspace symbols in engine developer mode
+  EngineDeveloperMode: Boolean; //< add engine paths to workspace symbols?
 
 procedure InitializeUserConfig;
 
@@ -39,6 +40,7 @@ procedure InitializeUserConfig;
   - extra CGE paths (derived from the single CGE path from castle-pasls.ini file)
   - extra CGE options (like -Mobjfpc)
   - extra free FPC options from castle-pasls.ini file
+  - extra paths from castle-pasls-paths.txt
 }
 function ExtraFpcOptions: String;
 
@@ -59,7 +61,7 @@ uses
 
 procedure InitializeUserConfig;
 var
-  FileName: String;
+  ConfigFileName, PathsFileName: String;
 begin
   {$ifdef UNIX_WITH_USERS_UNIT}
   { Special hack for Unix + VSCode integration in https://github.com/genericptr/pasls-vscode ,
@@ -67,16 +69,25 @@ begin
     so GetAppConfigDir will not work (it will return relative path ".config/....". instead
     of proper absolute "/home/michalis/.config/....").
 
-    Emacs LSP client doesn't have this problem. }
+    Emacs LSP client doesn't have this problem.
+    
+    CGE integration on https://github.com/castle-engine/castle-engine-vscode/ 
+    also doesn't have this problem. }
   if GetEnvironmentVariable('HOME') = '' then
   begin
-    FileName := '/home/' + GetUserName(FpGetUID) + '/.config/pasls/castle-pasls.ini';
+    ConfigFileName := '/home/' + GetUserName(FpGetUID) + '/.config/pasls/castle-pasls.ini';
   end else
   {$endif}
-    FileName := IncludeTrailingPathDelimiter(GetAppConfigDir(false)) + 'castle-pasls.ini';
+    ConfigFileName := IncludeTrailingPathDelimiter(GetAppConfigDir(false)) + 'castle-pasls.ini';
 
-  //WriteLn('Reading config from ', FileName);
-  UserConfig := TIniFile.Create(FileName);
+  //WriteLn('Reading INI config from ', ConfigFileName);
+  UserConfig := TIniFile.Create(ConfigFileName);
+
+  // create UserConfigPaths
+  PathsFileName := ChangeFileExt(ConfigFileName, '-paths.txt');
+  UserConfigPaths := TStringList.Create;
+  if FileExists(PathsFileName) then
+    UserConfigPaths.LoadFromFile(PathsFileName);
 end;
 
 { Detect Castle Game Engine path using various methods.
@@ -237,6 +248,23 @@ function ExtraFpcOptions: String;
     finally FreeAndNil(CastleFpcCfg) end;
   end;
 
+  procedure AddPathsFromUserConfigPaths;
+  var
+    S, Trimmed: String;
+  begin
+    for S in UserConfigPaths do
+    begin
+      Trimmed := Trim(S);
+      // ignore empty lines and comments
+      if (Trimmed <> '') and (Trimmed[1] <> '#') then
+      begin
+        Result := Result + 
+            ' ' + QuoteFpcOption('-Fu' + Trimmed) + 
+            ' ' + QuoteFpcOption('-Fi' + Trimmed);
+      end;
+    end;
+  end;
+
 const
   { Add the same syntax options as are specified by CGE build tool in
     castle-engine/tools/build-tool/code/toolcompile.pas .
@@ -271,8 +299,9 @@ begin
     Inc(ExtraOptionIndex);
     Result := Result + ' ' + QuoteFpcOption(ExtraOption);
   end;
-end;
 
+  AddPathsFromUserConfigPaths;
+end;
 
 procedure ParseWorkspacePaths(const ProjectSearchPaths, ProjectDirectory: String);
 
@@ -337,4 +366,5 @@ finalization
   FreeAndNil(WorkspaceAndEnginePaths);
   FreeAndNil(WorkspacePaths);
   FreeAndNil(UserConfig);
+  FreeAndNil(UserConfigPaths);
 end.
