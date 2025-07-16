@@ -27,6 +27,11 @@ uses CustomCodeTool, CodeToolManager, CodeCache;
 
 function MergePaths(Paths: array of string): string;
 function GetConfigDirForApp(AppName, Vendor: string; Global: Boolean): string;
+
+{ Convert URI (with file:// protocol) to a filename.
+  Accepts also empty string, returning empty string in return.
+  URIs with other protocols (like "untitled://") or invalid URIs
+  result in a warning and also return empty string. }
 function URIToFileNameEasy(const UriStr: String): String;
 
 { Return prefix for error message describing filename, line, column
@@ -91,18 +96,16 @@ begin
   end;
 end;
 
-{ Convert URI (with file:// protocol) to a filename.
-  Accepts also empty string, returning empty string in return.
-  Other / invalid URIs result in an exception. }
 function URIToFileNameEasy(const UriStr: String): String;
 begin
   if UriStr = '' then
     Exit('');
   if not URIToFilename(UriStr, Result) then
-    raise ERpcError.CreateFmt(
+    Exit('');
+    {raise ERpcError.CreateFmt(
       jsrpcInvalidRequest,
       'Unable to convert URI to filename: %s', [UriStr]
-    );
+    );}
 end;
 
 const

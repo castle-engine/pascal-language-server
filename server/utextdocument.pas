@@ -100,8 +100,17 @@ begin
   if ParseChangeOrOpen(Request.Reader, UriStr, Content, false) then
   begin
     FileName := URIToFileNameEasy(UriStr);
+    if FileName = '' then
+    begin
+      raise ERpcError.CreateFmt(
+        jsrpcInvalidRequest,
+        'URI does not describe a regular file: %s', [UriStr]
+      );
+    end;
+
+    // Initialize Code from FileName
     Code := CodeToolBoss.LoadFile(FileName, false, false);
-    { When we can't found file try to create it, workaround for creating
+    { When we can't find file try to create it, workaround for creating
       new source files in vscode }
     if Code = nil then
       Code := CodeToolBoss.CreateFile(FileName);
@@ -123,6 +132,11 @@ begin
   if ParseChangeOrOpen(Request.Reader, UriStr, Content, true) then
   begin
     FileName := URIToFileNameEasy(UriStr);
+    if FileName = '' then
+      raise ERpcError.CreateFmt(
+        jsrpcInvalidRequest,
+        'URI does not describe a regular file: %s', [UriStr]
+      );
     Code     := CodeToolBoss.FindFile(FileName);
     if Code = nil then
       raise ERpcError.CreateFmt(
@@ -348,6 +362,7 @@ end;
 type
   TCompletionRequest = record
     X, Y:        Integer;
+    Uri:         String;
     FileName:    String;
     TriggerKind: Integer;
     TriggerChar: string;
@@ -357,9 +372,8 @@ type
 function ParseCompletionRequest(Reader: TJsonReader): TCompletionRequest;
 var
   Key:    string;
-  UriStr: string;
 begin
-  UriStr             := '';
+  Result.Uri         := '';
   Result.TriggerKind := -1;
   Result.Y           := -1;
   Result.X           := -1;
@@ -371,7 +385,7 @@ begin
         while (Reader.Advance <> jsDictEnd) and Reader.Key(Key) do
         begin
           if Key = 'uri' then
-            Reader.Str(UriStr);
+            Reader.Str(Result.Uri);
         end
       else if (Key = 'position') and Reader.Dict then
         while (Reader.Advance <> jsDictEnd) and Reader.Key(Key) do
@@ -395,7 +409,7 @@ begin
         end;
     end;
 
-  Result.FileName := URIToFileNameEasy(UriStr);
+  Result.FileName := URIToFileNameEasy(Result.Uri);
 end;
 
 // Identifier completion
@@ -657,6 +671,12 @@ begin
   try
     try
       Req  := ParseCompletionRequest(Request.Reader);
+      if Req.Filename = '' then
+      begin
+        SendNullResponse(Rpc, Request);
+        Exit;
+      end;
+
       Code := CodeToolBoss.FindFile(Req.FileName);
 
       if Code = nil then
@@ -817,6 +837,12 @@ begin
   try
     try
       Req  := ParseCompletionRequest(Request.Reader);
+      if Req.Filename = '' then
+      begin
+        SendNullResponse(Rpc, Request);
+        Exit;
+      end;
+
       Code := CodeToolBoss.FindFile(Req.FileName);
 
       if Code = nil then
@@ -918,6 +944,11 @@ begin
 
   try
     Req := ParseCompletionRequest(Request.Reader);
+    if Req.Filename = '' then
+    begin
+      SendNullResponse(Rpc, Request);
+      Exit;
+    end;
 
     Code := CodeToolBoss.FindFile(Req.FileName);
 

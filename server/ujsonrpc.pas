@@ -102,9 +102,12 @@ const
   jsrpcMethodNotFound       = -32601;
   jsrpcRequestFailed        = -32803;
 
+{ Return null response, that signals "no error, but also no result". }
+procedure SendNullResponse(const Rpc: TRpcPeer; const Request: TRpcRequest);
+
 implementation
 
-uses 
+uses
   CastleLsp, udebug;
 
 procedure WriteRpcId(Writer: TJsonWriter; const Id: TRPcId);
@@ -165,7 +168,7 @@ begin
   Writer.Dict;
     Writer.Key('code');
     Writer.Number(Code);
-  
+
     Writer.Key('message');
     Writer.Str(Msg);
   Writer.DictEnd;
@@ -255,7 +258,7 @@ begin
       raise EParserError.Create('Invalid request body.');
 
     Buffer := TBytesStream.Create();
-    Buffer.SetSize(Len);  
+    Buffer.SetSize(Len);
     FInput.BlockRead(PByte(Buffer.Memory)^, Len);
 
     // 1st pass: Extract meta data
@@ -285,13 +288,13 @@ begin
 
     if (Version <> '2.0') then
       raise ERpcError.Create(
-        jsrpcInvalidRequest, 
+        jsrpcInvalidRequest,
         'No or invalid jsonrpc version specified. Must be 2.0.'
       );
 
     if (Method = '') then
       raise ERpcError.Create(
-        jsrpcInvalidRequest, 
+        jsrpcInvalidRequest,
         'No method specified.'
       );
 
@@ -319,7 +322,7 @@ begin
     Result.Id      := Id;
     Result.Reader  := Reader;
     Result.FBuffer := Buffer;
-    
+
     LogFullJson := UserConfig.ReadBool('log', 'full_json', false);
     if LogFullJson then
       CutLength := MaxInt
@@ -355,7 +358,7 @@ begin
     [ContentType, Response.FBuffer.Size]
   ));
   FOutput.WriteBuffer(
-    PByte(Response.FBuffer.Memory)^, 
+    PByte(Response.FBuffer.Memory)^,
     Response.FBuffer.Size
   );
 
@@ -386,6 +389,21 @@ constructor ERpcError.CreateFmt(
 begin
   inherited CreateFmt(Fmt, args);
   Code := ACode;
+end;
+
+procedure SendNullResponse(const Rpc: TRpcPeer; const Request: TRpcRequest);
+var
+  Response: TRpcResponse;
+  Writer:   TJsonWriter;
+begin
+  Response := TRpcResponse.Create(Request.Id);
+  try
+    Writer := Response.Writer;
+    Writer.Null;
+    Rpc.Send(Response);
+  finally
+    FreeAndNil(Response);
+  end;
 end;
 
 end.

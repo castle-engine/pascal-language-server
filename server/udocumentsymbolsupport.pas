@@ -57,6 +57,8 @@ implementation
 
 uses ulogvscode, CodeToolManager, CodeCache, CodeTree, PascalParserTool;
 
+{ Get filename from "textDocument/documentSymbol" request.
+  Returns empty string if not possible (invalid, unrecognized URI). }
 function ParseDocumentSymbolRequest(Reader: TJsonReader): String;
 var
   Key, Uri: String;
@@ -78,22 +80,6 @@ begin
   Result := URIToFileNameEasy(Uri);
 end;
 
-{ Return null response, that signals "no error, but also no result". }
-procedure SendNullResponse(const Rpc: TRpcPeer; const Request: TRpcRequest);
-var
-  Response: TRpcResponse;
-  Writer:   TJsonWriter;
-begin
-  Response := TRpcResponse.Create(Request.Id);
-  try
-    Writer := Response.Writer;
-    Writer.Null;
-    Rpc.Send(Response);
-  finally
-    FreeAndNil(Response);
-  end;
-end;
-
 { Responses for textDocument/documentSymbol method
   Docs: https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_documentSymbol }
 procedure TextDocument_DocumentSymbol(const Rpc: TRpcPeer; const Request: TRpcRequest);
@@ -113,14 +99,25 @@ var
   ProcedureName: String;
 begin
   Filename := ParseDocumentSymbolRequest(Request.Reader);
+  if Filename = '' then
+  begin
+    { This happens when opening new file that is not yet saved,
+      with "untitled:" URI that has no real filename.
+      Return null (not any error) in response, to avoid flooding
+      notifications to user that tried to edit such file. }
+    SendNullResponse(Rpc, Request);
+    Exit;
+  end;
+
   LogInfo(Rpc, 'File name:' + Filename);
   Code := CodeToolBoss.FindFile(Filename);
-
   if Code = nil then
+  begin
     raise ERpcError.CreateFmt(
       jsrpcInvalidRequest,
       'File not found: %s', [Filename]
     );
+  end;
 
  { Based on lazarus TProcedureListForm.GetCodeTreeNode() }
 
