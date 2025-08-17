@@ -716,6 +716,11 @@ begin
     except
       on E: ERpcError do
       begin
+        DebugLog('Exception ERpcError when handling textDocument/completion: code %d, message %s', [
+          E.Code,
+          E.Message
+        ]);
+
         FreeAndNil(Response);
 
         case SyntaxErrorReportingMode of
@@ -1015,8 +1020,14 @@ begin
     except
       on E: ECodeToolError do
       begin
-        // exeption raised when we search identifier in some comments words
-        // has id 20170421200105 so we then do not show message window in vscode
+        DebugLog('Exception ECodeToolError when handling textDocument/declaration or textDocument/definition: id %s, message %s', [
+          E.Id,
+          E.Message
+        ]);
+
+        { Ignore exception id 20170421200105 when we search identifier
+          in some comments words.
+          Do not show error message in VS Code in this case, too spammy. }
         if E.Id <> 20170421200105 then
         begin
           ShowErrorMessage(Rpc, PositionForErrorPrefix(E) + E.Message);
