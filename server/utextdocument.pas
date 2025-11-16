@@ -1020,7 +1020,7 @@ begin
     except
       on E: ECodeToolError do
       begin
-        DebugLog('Exception ECodeToolError when handling textDocument/declaration or textDocument/definition: id %s, message %s', [
+        DebugLog('Exception ECodeToolError when handling textDocument/declaration or textDocument/definition: id %d, message %s', [
           E.Id,
           E.Message
         ]);
