@@ -34,7 +34,10 @@ jobs:
     name: Build (Not Docker)
     strategy:
       matrix:
-        operating-system: [windows-latest, ubuntu-latest, macos-latest]
+        operating-system: [windows-latest, ubuntu-latest
+          # Disabled for now, gcarreno/setup-lazarus doesn't work, "brew install lazarus" doesn't work on latest macOS
+          #, macos-latest
+        ]
         lazarus-versions: [stable, "3.0"]
     runs-on: ${{ matrix.operating-system }}
     steps:
