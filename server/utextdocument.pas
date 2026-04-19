@@ -1025,10 +1025,13 @@ begin
           E.Message
         ]);
 
-        { Ignore exception id 20170421200105 when we search identifier
-          in some comments words.
-          Do not show error message in VS Code in this case, too spammy. }
-        if E.Id <> 20170421200105 then
+        if { Ignore exception id 20170421200105 when we search identifier
+             in some comments words.
+             Do not show error message in VS Code in this case, too spammy. }
+           (E.Id <> 20170421200105) and
+           { Do not show "In front of code." error, this is not really an error,
+             just means we stand before "unit" or "program keyword. }
+           (not E.Message.StartsWith('In front of code.', true)) then
         begin
           ShowErrorMessage(Rpc, PositionForErrorPrefix(E) + E.Message);
         end;
