@@ -1,6 +1,7 @@
 // Pascal Language Server
 // Copyright 2020 Arjan Adriaanse
 //           2021 Philip Zander
+//           2025-2026 Michalis Kamburelis
 
 // This file is part of Pascal Language Server.
 
@@ -241,9 +242,35 @@ begin
   CodeToolBoss.IdentComplIncludeKeywords := IncludeKeywords;
 
   if not CodeToolBoss.GatherIdentifiers(Code, X, Y) then
+  begin
+    { Unfortunately I have cases when this happens, when trying to complete
+      "finally SavedFontSize ..." in x3dnodes_standard_text.inc .
+      With Lazarus from main -- not stable.
+
+      Propagating this problem as ERpcError, and then user showMessage,
+      isn't good for users trying to edit Pascal in VS Code,
+      as showing popup "Access Violation"
+      is confusing and disruptive when editing code (user probably
+      doesn't want to jump to debug pasls + CodeTools).
+
+      So we log + hide it for now.
+
+      (For other errors, we raise ERpcError and they will result in showMesssage
+      to user, this is good and may be helpful.)
+
+      TODO: We should offer some way to reproduce this error,
+      and submit it as CodeTools error. }
+
+    if Pos('EAccessViolation: Access violation', CodeToolBoss.ErrorMessage) <> 0 then
+    begin
+      DebugLog('Access violation in CodeToolBoss.GatherIdentifiers. Full exception message: %s', [CodeToolBoss.ErrorMessage]);
+      Exit;
+    end;
+
     raise ERpcError.Create(
       jsrpcRequestFailed,
       PositionForErrorPrefix(CodeToolBoss) + CodeToolBoss.ErrorMessage);
+  end;
 
   Count := CodeToolBoss.IdentifierList.GetFilteredCount;
 
