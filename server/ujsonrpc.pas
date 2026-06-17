@@ -354,7 +354,7 @@ begin
   Response.Finalize;
 
   WriteString(Format(
-    'Content-Type: %s'#13#10'Content-Length:%d'#13#10#13#10,
+    'Content-Type: %s'#13#10'Content-Length: %d'#13#10#13#10,
     [ContentType, Response.FBuffer.Size]
   ));
   FOutput.WriteBuffer(
